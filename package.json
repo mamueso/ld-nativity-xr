@@ -1,0 +1,34 @@
+{
+  "name": "ld-nativity",
+  "description": "A virtual nativity scene using LDRAW objects.",
+  "version": "0.1.0",
+  "main": "main.js",
+  "scripts": {
+    "serve": "http-server .",
+    "start": "electron .",
+    "packldr": "node gfx/packLDrawModel.js gfx/models/"
+  },
+  "dependencies": {
+    "three": "^0.115.0",
+    "partykals": "^1.0.2"
+  },
+  "devDependencies": {
+    "http-server": "^0.12.3",
+    "electron": "^8.2.0",
+    "sync-request": "^6.1.0"
+  },
+  "build": {
+    "appId": "ld-nativity"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/goeroeg/ld-nativity.git"
+  },
+  "keywords": [],
+  "author": "goeroeg",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/goeroeg/ld-nativity/issues"
+  },
+  "homepage": "https://goeroeg.github.io/ld-nativity"
+}
