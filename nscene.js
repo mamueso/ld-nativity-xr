@@ -73,9 +73,7 @@ var qualityNames = { High: 1, Low : 2};
 var audioSettings = { enabled : true, volume: 100 };
 var gamepadSettings = { enabled: true, moveSensitivity: 1, lookSensitivity: 1 };
 var gfxSettings = { resolution: resolutionNames.Auto, quality: qualityNames.High, fullScreen: false, shadows: isTouch ? 0 : 3 , antiAlias: true , showFPS: false};
-var gameSettings = {
-    itemAmount: isTouch ? 20 : 50, nightEnabled: !isTouch, season : WORLD.seasons.normal };
-
+var gameSettings = { itemAmount: isTouch ? 20 : 50, nightEnabled: false, season : WORLD.seasons.normal };
 
 var gui, gfxFolder, controlsFolder, audioFolder, gameFolder;
 
@@ -88,13 +86,14 @@ var touchMoveForward = document.getElementById('touchForward');
 var touchMoveBack = document.getElementById('touchBack');
 var touchMoveLeft = document.getElementById('touchLeft');
 var touchMoveRight = document.getElementById('touchRight');
+var touchToggleSeason = document.getElementById('touchSeason');
+var touchToggleDayNight = document.getElementById('touchDayNight');
 
 const touchControlDirs = new Map();
 var touchMoveTime;
-
 var touchCameraControls = document.getElementById('cameraControls');
-
 var touchCamPos = new THREE.Vector2();
+
 
 const playerCamHeight = 85;
 
@@ -112,9 +111,10 @@ var angel;
 init();
 
 function init() {
+    initTouchControls(true);
     initScene();
     initControls();
-    SFX.init(camera);
+    //SFX.init(camera);
     initGUI();
 }
 
@@ -176,8 +176,6 @@ function initControls() {
     // gpControls.moveAction = checkChrystals;
 
     scene.add( controls.getObject() );
-
-    initTouchControls(!isTouch);
 
     if (isTouch) {
         instructions.addEventListener( 'touchstart', function (e) {
@@ -249,16 +247,10 @@ function initControls() {
                 break;
 
             case 77: // m
-                if (gameSettings.season == WORLD.seasons.normal) {
-                    gameSettings.season = WORLD.seasons.winter;
-                } else {
-                    gameSettings.season = WORLD.seasons.normal;
-                }
-                setSeason(gameSettings.season);
+                toggleSeason();
             break;
             case 78: // n
-                gameSettings.nightEnabled = !gameSettings.nightEnabled;
-                updateNightMode(false);
+                toggleDayNight();
             break;
         }
 
@@ -320,6 +312,20 @@ function initControls() {
     // document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 }
 
+function toggleDayNight() {
+    gameSettings.nightEnabled = !gameSettings.nightEnabled;
+    updateNightMode(false);
+}
+
+function toggleSeason() {
+    if (gameSettings.season == WORLD.seasons.normal) {
+        gameSettings.season = WORLD.seasons.winter;
+    } else {
+        gameSettings.season = WORLD.seasons.normal;
+    }
+    setSeason(gameSettings.season);
+}
+
 function initComposer() {
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
@@ -335,6 +341,26 @@ function jump() {
 function initTouchControls(hide) {
     if (hide) {
         document.getElementById('touchControls').style.display = 'none';
+
+        touchCameraControls.removeEventListener("touchstart", onCamControlsTouch);
+        touchCameraControls.removeEventListener("touchmove", onCamControlsTouchMove);
+        touchCameraControls.removeEventListener("touchend", onCamControlsRelease);
+
+        touchMoveForward.removeEventListener("touchstart", onMoveControlTouch);
+        touchMoveForward.removeEventListener("touchend", onMoveControlRelease);
+
+        touchMoveBack.removeEventListener("touchstart", onMoveControlTouch);
+        touchMoveBack.removeEventListener("touchend", onMoveControlRelease);
+
+        touchMoveLeft.removeEventListener("touchstart", onMoveControlTouch);
+        touchMoveLeft.removeEventListener("touchend", onMoveControlRelease);
+
+        touchMoveRight.removeEventListener("touchstart", onMoveControlTouch);
+        touchMoveRight.removeEventListener("touchend", onMoveControlRelease);
+
+        touchToggleSeason.removeEventListener("click", onToggleSeasonClick);
+        touchToggleDayNight.removeEventListener("click", onToggleDayNightClick);
+
     } else {
         document.getElementById('touchControls').style.display = '-webkit-box';
         document.getElementById('touchControls').style.display = '-moz-box';
@@ -360,6 +386,9 @@ function initTouchControls(hide) {
 
         touchMoveRight.addEventListener("touchstart", onMoveControlTouch, false);
         touchMoveRight.addEventListener("touchend", onMoveControlRelease, false);
+
+        touchToggleSeason.addEventListener("click", onToggleSeasonClick, false);
+        touchToggleDayNight.addEventListener("click", onToggleDayNightClick, false);
     }
 }
 
@@ -429,6 +458,7 @@ function toggleMove(activate, moveDirIndex, control) {
 
 function pauseGame() {
     gameActive = false;
+    initTouchControls(true);
     updateBlocker(false);
 
     SFX.pause();
@@ -443,6 +473,8 @@ function startGame() {
     requestAnimationFrame(animate);
 
     updateBlocker(true);
+
+    initTouchControls(!isTouch);
 
     document.addEventListener('click', onDocumentClick, false);
     touchCameraControls.addEventListener('click', onDocumentClick, false);
@@ -555,9 +587,6 @@ function initGUI() {
     gameFolder.add(gameSettings, "season", WORLD.seasons).name("Season").onChange(function (value) {
         setSeason(value);
         preRender();
-        if (playerGuy) {
-            updateMapData(miniMap, playerGuy.oriY, -playerGuy.position.z / WORLD.parcelSize, playerGuy.position.x / WORLD.parcelSize);
-        }
     }).listen();
 
     setSeason(gameSettings.season);
@@ -692,8 +721,8 @@ function initScene() {
             WORLD.createFences();
             WORLD.initGate(checkSceneInitItems, onProgress, onError);
             initSky(checkSceneInitItems, onProgress, onError);
-            WORLD.populatePlants(10, 50);
-            addPalmTree(20);
+            WORLD.populatePlants(10, gameSettings.itemAmount);
+            addPalmTree(Math.round(40 * (gameSettings.itemAmount / 100)));
             checkSceneInitItems();
         }, onProgress, onError);
 
@@ -1020,6 +1049,18 @@ function onDocumentMouseMove( event ) {
     event.preventDefault();
     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+}
+
+function onToggleSeasonClick( event ) {
+    highlightTouchControl(touchToggleSeason);
+    toggleSeason();
+    resetTouchControl(touchToggleSeason);
+}
+
+function onToggleDayNightClick( event ) {
+    highlightTouchControl(touchToggleDayNight);
+    toggleDayNight();
+    resetTouchControl(touchToggleDayNight);
 }
 
 function onDocumentClick( event ) {

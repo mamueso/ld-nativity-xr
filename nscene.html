@@ -147,9 +147,9 @@
 				line-height: 5vw;
 			}
 
-			#movementControls kbd {
+			#touchControls kbd {
 				height: 5vw;
-				width: 5vw;
+				width: 6vw;
 
 				margin: 0.3vw;
 				padding: 1vw;
@@ -165,7 +165,7 @@
 				cursor: pointer;
 			}
 
-			#movementControls span {
+			#touchControls span {
 				display: inherit;
 
 				-webkit-box-orient: horizontal;
@@ -175,6 +175,30 @@
 				-webkit-box-pack:center;
 				-moz-box-pack: center;
 				box-pack: center;
+			}
+
+			#miscControls {
+				position: absolute;
+				left: 39%;
+				bottom: 2%;
+
+				display: inherit;
+
+				-webkit-box-orient: vertical;
+				-moz-box-orient: vertical;
+				box-orient: vertical;
+
+				-webkit-box-pack: center;
+				-moz-box-pack: center;
+				box-pack: center;
+
+				font-size: 3.5vw;
+				line-height: 3.5vw;
+			}
+
+			#miscControls kbd {
+				height: 4vw;
+				width: 8vw;
 			}
 
 			#cameraControls {
@@ -213,10 +237,6 @@
 				padding: 2%;
 
 				display: inherit;
-
-				-webkit-box-orient: horizontal;
-				-moz-box-orient: horizontal;
-				box-orient: horizontal;
 
 				-webkit-box-pack:justify;
 				-moz-box-pack: justify;
@@ -261,7 +281,18 @@
 		</div>
 		<div id="touchControls">
 			<div id="movementControls">
-				<kbd id="touchForward">&#9651;</kbd></br><span><kbd id="touchLeft">&#9665;</kbd>&nbsp;<kbd id="touchBack">&#9661;</kbd>&nbsp;<kbd id="touchRight">&#9655;</kbd></span>
+				<kbd id="touchForward">&#9651;</kbd></br>
+				<span>
+					<kbd id="touchLeft">&#9665;</kbd>&nbsp;
+					<kbd id="touchBack">&#9661;</kbd>&nbsp;
+					<kbd id="touchRight">&#9655;</kbd>
+				</span>
+			</div>
+			<div id="miscControls">
+				<span>
+					<kbd id="touchSeason">&#9969;/&#9731;</kbd>
+					<kbd id="touchDayNight">&#9788;/&#9789;</kbd>
+				</span>
 			</div>
 			<div id="cameraControls">
 				<div >&#9652;</div><span><div>&#9666;</div><div>&#9656;</div></span><div>&#9662;</div>
