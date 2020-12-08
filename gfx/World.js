@@ -1,8 +1,7 @@
 // import * as THREE from '../node_modules/three/build/three.module.js';
 
-import { LDrawLoader } from './LDrawLoader.js';
+import { initObj } from './Objects.js';
 import * as ANIM from './Animations.js';
-
 
 export const studSize = 20;
 export const flatSize = 8;
@@ -64,134 +63,79 @@ export const trackDummyPlaceholder = 4;
 
 
 export function initPlates(onLoad, onProgress, onError) {
-    var lDrawLoader = new LDrawLoader();
+    initObj('baseplate', obj => {
+        model = obj;
+        // Convert from LDraw coordinates: rotate 180 degrees around OX
+        model.rotateX(-Math.PI);
 
-    lDrawLoader.smoothNormals = false;
+        let max = plateSize * (plateCounter + 0.5);
+        let min = -max;
 
-    lDrawLoader.separateObjects = true;
-
-    lDrawLoader
-        .setPath( "ldraw/" )
-        .load( "models/baseplate.ldr_Packed.mpd", function ( group2 ) {
-
-            model = group2;
-
-            // Convert from LDraw coordinates: rotate 180 degrees around OX
-            model.rotateX(-Math.PI);
-
-            // Adjust materials
-
-            // console.log(model);
-
-            model.traverse( c => {
-                c.visible = !c.isLineSegments;
-                c.castShadow = false;
-                c.receiveShadow = true;
-            } );
-
-            //model.castShadow = true;
-            //model.receiveShadow = true;
-
-            let max = plateSize * (plateCounter + 0.5);
-            let min = -max;
-
-            // create parcels
-            for (let x = min; x <= max; x += parcelSize) {
-                for (let z = min; z <= max; z += parcelSize) {
-                    let newParcel = { x: x, z: z };
-                    parcels.push(newParcel);
-                }
+        // create parcels
+        for (let x = min; x <= max; x += parcelSize) {
+            for (let z = min; z <= max; z += parcelSize) {
+                let newParcel = { x: x, z: z };
+                parcels.push(newParcel);
             }
+        }
 
-            // console.log(parcels);
-            plate = model.children[0];
+        // console.log(parcels);
+        plate = model.children[0];
 
-            // clear model, keep only first plate
-            while(model.children.length > 1) model.remove(model.children[1]);
+        // clear model, keep only first plate
+        while(model.children.length > 1) model.remove(model.children[1]);
 
-            // reserve exercise parcel
+        freeParcels = parcels.filter(parcelFilter);
 
-            //for (let i = 0; i <= 3; i++) {
-            let idx = getParcelIndex(-200, plateSize);
-            let exParcel = parcels[idx];
-            exParcel.occupied = true;
-            exParcel.mapObjId = MapObjectId.exercise;
-            //}
+        setSeasonColor(currentSeason);
 
-            freeParcels = parcels.filter(parcelFilter);
-
-            setSeasonColor(currentSeason);
-
-            onLoad(model);
-
-        }, onProgress, onError);
+        if (onLoad) onLoad(model);
+    }, onProgress, onError, true);
 }
 
 export function initScene(onLoad, onProgress, onError) {
-    var lDrawLoader = new LDrawLoader();
+    initObj('ambient', obj => {
+        // Convert from LDraw coordinates: rotate 180 degrees around OX
+        obj.rotateX(-Math.PI);
 
-    lDrawLoader.smoothNormals = smoothNormals;
+        fence = obj.children[0];
 
-    lDrawLoader.separateObjects = true;
+        for (let plantIdx = 1; plantIdx < obj.children.length; plantIdx++) {
+            obj.children[plantIdx].position.x = 0;
+            obj.children[plantIdx].position.z = 0;
+            plantProtos.push(obj.children[plantIdx]);
+        }
 
-    lDrawLoader
-        .setPath( "ldraw/" )
-        .load( "models/ambient.ldr_Packed.mpd", function ( group2 ) {
+        let newBush = plantProtos[1].clone();
+        newBush.add(plantProtos[2].clone().translateY(-flatSize));
+        plantProtos.splice(2, 0, newBush);
 
-            // Convert from LDraw coordinates: rotate 180 degrees around OX
-            group2.rotateX(-Math.PI);
+        let newFlower = plantProtos[4].clone();
+        newFlower.add(plantProtos[5].clone().rotateY(Math.PI));
+        plantProtos.push(newFlower);
 
-            // Adjust materials
+        newFlower = plantProtos[4].clone();
+        newFlower.add(plantProtos[6].clone().rotateY(Math.PI));
+        plantProtos.push(newFlower);
 
-            // console.log(model);
+        setSeasonColor(currentSeason);
 
-            group2.traverse( c => {
-                c.visible = !c.isLineSegments;
-                c.castShadow = true;
-                c.receiveShadow = true;
-            } );
-
-            fence = group2.children[0];
-
-            // let plants = [];
-            for (let plantIdx = 1; plantIdx < group2.children.length; plantIdx++) {
-                group2.children[plantIdx].position.x = 0;
-                group2.children[plantIdx].position.z = 0;
-                plantProtos.push(group2.children[plantIdx]);
-            }
-
-            let newBush = plantProtos[1].clone();
-            newBush.add(plantProtos[2].clone().translateY(-flatSize));
-            plantProtos.splice(2, 0, newBush);
-
-            let newFlower = plantProtos[4].clone();
-            newFlower.add(plantProtos[5].clone().rotateY(Math.PI));
-            plantProtos.push(newFlower);
-
-            newFlower = plantProtos[4].clone();
-            newFlower.add(plantProtos[6].clone().rotateY(Math.PI));
-            plantProtos.push(newFlower);
-
-            setSeasonColor(currentSeason);
-
-            onLoad(group2);
-
-        }, onProgress, onError);
+        if (onLoad) onLoad(obj);
+    }, onProgress, onError);
 }
 
 export function setSeasonColor(season) {
-        if (plate) {
-            plate.children[0].material[0].color.setHex(seasonPlateColor[season]);
-        }
-        if (plantProtos && plantProtos.length > 0) {
-            plantProtos[0].children[0].material[0].color.setHex(seasonPlantColor[season]);
-            // plantProtos[5].children[0].material[0].color.setHex(seasonPlantColor[season]);
-        }
-        if (roadPlate) {
-            // console.log(roadPlate);
-            roadPlate.children[0].material[0].color.setHex(seasonPlateColor[season]);
-        }
-        currentSeason = season;
+    if (plate) {
+        plate.children[0].material[0].color.setHex(seasonPlateColor[season]);
+    }
+    if (plantProtos && plantProtos.length > 0) {
+        plantProtos[0].children[0].material[0].color.setHex(seasonPlantColor[season]);
+        // plantProtos[5].children[0].material[0].color.setHex(seasonPlantColor[season]);
+    }
+    if (roadPlate) {
+        roadPlate.children[0].material[0].color.setHex(seasonPlateColor[season]);
+    }
+    currentSeason = season;
 }
 
 export function createPlates() {
@@ -208,12 +152,12 @@ export function createPlates() {
 }
 
 export function debugParcel(x, z, color = 0xffffff) {
-        let mat = new THREE.MeshBasicMaterial({color: color, transparent: true, opacity:0.5});
-        let geo = new THREE.BoxBufferGeometry(parcelSize, parcelSize, parcelSize);
-        let mesh = new THREE.Mesh(geo, mat);
-        mesh.position.x = x;
-        mesh.position.z = z;
-        model.add(mesh);
+    let mat = new THREE.MeshBasicMaterial({color: color, transparent: true, opacity:0.5});
+    let geo = new THREE.BoxBufferGeometry(parcelSize, parcelSize, parcelSize);
+    let mesh = new THREE.Mesh(geo, mat);
+    mesh.position.x = x;
+    mesh.position.z = z;
+    model.add(mesh);
 }
 
 function parcelFilter(value) {
@@ -228,33 +172,11 @@ function parcelFilter(value) {
 }
 
 export function initGate(onLoad, onProgress, onError) {
-    var lDrawLoader = new LDrawLoader();
-
-    lDrawLoader.smoothNormals = smoothNormals;
-
-    lDrawLoader.separateObjects = true;
-
-    lDrawLoader
-        .setPath( "ldraw/" )
-        .load( "models/gate.ldr_Packed.mpd", function ( group2 ) {
-
-            // Convert from LDraw coordinates: rotate 180 degrees around OX
-            //group2.rotateX(-Math.PI);
-
-            // Adjust materials
-
-            // console.log(model);
-
-            group2.traverse( c => {
-                c.visible = !c.isLineSegments;
-                c.castShadow = true;
-                c.receiveShadow = true;
-            } );
-
-            group2.position.z = -worldPlates * plateSize - studSize;
-            model.add(group2);
-
-        }, onProgress, onError);
+    initObj('gate', gate => {
+        gate.position.z = -worldPlates * plateSize - studSize;
+        model.add(gate);
+        if (onLoad) onLoad(gate);
+    }, onProgress, onError);
 }
 
 export function createFences() {
@@ -400,7 +322,6 @@ export function addCollBox(obj) {
     return bbox;
 }
 
-
 export function reserveParcelAt(x, z, mixer, placeHolder) {
     let parcel = parcels[getParcelIndex(x, z)];
     // debugParcel(parcel.x, parcel.z);
@@ -416,36 +337,19 @@ export function reserveParcelAt(x, z, mixer, placeHolder) {
 }
 
 export function initRoads(onLoad, onProgress, onError, effectFunc) {
-
-    if (!model) return;
-
-    var lDrawLoader = new LDrawLoader();
-
-    lDrawLoader.smoothNormals = false;
-
-    lDrawLoader.separateObjects = true;
-
-    lDrawLoader
-        .setPath( "ldraw/" )
-        .load( "models/road.ldr_Packed.mpd", function ( roads ) {
-
+    if (model) {
+        initObj('road', roads => {
             // Convert from LDraw coordinates: rotate 180 degrees around OX
             roads.rotateX(-Math.PI);
 
             // Adjust materials
 
-            roads.traverse( c => {
-                c.visible = !c.isLineSegments;
-                c.castShadow = false;
-                c.receiveShadow = true;
-            } );
-
-            let straight = roads.children[0];
+            let roadPlate = roads.children[0];
 
             //for (let x = -roadPlates; x <= roadPlates; x+= 2 * roadPlates) {
                 let x = 0;
                 for (let z = -plateCounter; z <= roadPlates; z++ ) {
-                    replacePlate(straight, x * plateSize, z * plateSize, effectFunc)
+                    replacePlate(roadPlate, x * plateSize, z * plateSize, effectFunc)
                 }
             //}
 
@@ -453,15 +357,12 @@ export function initRoads(onLoad, onProgress, onError, effectFunc) {
                 if (parcel.occupied == roadPlaceholder) {
                     parcel.mapObjId = MapObjectId.road;
                 }
-
             }
-
-            roadPlate = straight;
             setSeasonColor(currentSeason);
 
             if (onLoad) onLoad(roads);
-
-        }, onProgress, onError);
+        }, onProgress, onError, true);
+    }
 }
 
 function replacePlate(template, x, z, effectFunc) {

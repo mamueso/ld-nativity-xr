@@ -20,133 +20,101 @@ const palmCache = { base: null, trunk: null, top: null, leaves: new THREE.Group(
 
 //todo: cache also for animals
 
-export function initCow(onLoad, onProgress, onError) {
-
+export function initObj(name, onLoad, onProgress, onError, isBasePlate = false) {
     var lDrawLoader = new LDrawLoader();
-    lDrawLoader.smoothNormals = WORLD.smoothNormals;
-
+    lDrawLoader.smoothNormals = WORLD.smoothNormals && !isBasePlate;
     lDrawLoader.separateObjects = true;
 
     lDrawLoader
-        .setPath( "ldraw/" )
-        .load( "models/cow.ldr_Packed.mpd", function ( model ) {
-
-            // console.log(model);
-
+        .setPath( 'ldraw/' )
+        .load( 'models/' + name + '.ldr_Packed.mpd', obj => {
             // Convert from LDraw coordinates: rotate 180 degrees around OX
-            //model.rotateX(-Math.PI);
+            // obj.rotateX(-Math.PI);
 
-            let colorSelect = Math.floor(Math.random() * 4);
-
-            // Adjust materials
-            let cow = model;
-
-            let horns = [];
-            let headParts = [];
-
-            let cowMat;
-            let headMat;
-
-            model.traverse( c => {
+            let steps = [];
+            obj.traverse( c => {
                 c.visible = !c.isLineSegments;
-
                 if (c.isMesh)
                 {
-                    if (c.parent.userData.constructionStep == stepCowBody) {
-                        if (colorSelect > 1) {
-                            let idx = c.material.length > 1 ? 1 : 0;
-                            if (!cowMat) {
-                                let color = new THREE.Color(altCowColor);
-                                cowMat = c.material[idx].clone();
-                                cowMat.color = color;
-                            }
-                            c.material[idx] = cowMat;
-                        }
-                    }
+                    c.castShadow = !isBasePlate;
+                    c.receiveShadow = true;
 
-                    if (c.parent.userData.constructionStep == stepCowHead) {
-                        headParts.push(c);
-                        if (colorSelect > 0) {
-                            if (!headMat) {
-                                let headColor = new THREE.Color(colorSelect % 2 > 0 ? altCowHeadColor : altCowColor);
-                                headMat = c.material[2].clone();
-                                headMat.color = headColor;
-                            }
-
-                            c.material[2] = headMat;
-                        }
+                    let step = c.parent.userData.constructionStep;
+                    while (steps.length <= step) {
+                        steps.push([]);
                     }
-                    if (c.parent.userData.constructionStep == stepCowHorns) {
-                        horns.push(c);
-                    }
+                    steps[step].push(c);
                 }
-
-                c.castShadow = true;
-                c.receiveShadow = true;
             } );
 
-            cow.head = headParts[0];
-            // cow.attach(cow.head);
-            for (let headPart of headParts) {
-                if (headPart !== cow.head) {
-                    cow.head.attach(headPart);
-                }
-            }
-            for (let horn of horns) cow.head.attach(horn);
+            obj.steps = steps;
 
-            if (onLoad) onLoad(cow);
+            //console.log(obj);
+
+            if (onLoad) onLoad(obj);
 
         }, onProgress, onError);
 }
 
-export function initHorse(onLoad, onProgress, onError) {
+export function initCow(onLoad, onProgress, onError) {
+   initObj('cow', cow => {
+        let horns = cow.steps[stepCowHorns];
+        let headParts = cow.steps[stepCowHead];
 
-    var lDrawLoader = new LDrawLoader();
-    lDrawLoader.smoothNormals = WORLD.smoothNormals;
+        let cowMat;
+        let headMat;
 
-    lDrawLoader.separateObjects = true;
+        let colorSelect = Math.floor(Math.random() * 4);
 
-    lDrawLoader
-        .setPath( "ldraw/" )
-        .load( "models/horse.ldr_Packed.mpd", function ( model ) {
-
-            // console.log(model);
-
-            // Convert from LDraw coordinates: rotate 180 degrees around OX
-            // model.rotateX(Math.PI);
-
-            let colorSelect = Math.floor(Math.random() * 3);
-
-            // Adjust materials
-            let horse = model;
-
-            let bodyParts = [];
-            let headParts = [];
-
-            model.traverse( c => {
-                c.visible = !c.isLineSegments;
-
-                if (c.isMesh)
-                {
-                    if (c.parent.userData.constructionStep == stepHorseRearLegs) {
-                        if (colorSelect > 0) {
-                            let color = new THREE.Color(altHorseColors[colorSelect - 1]);
-                            c.material[0].color = color;
-                        }
-                    }
-
-                    if (c.parent.userData.constructionStep == stepHorseBody) {
-                        bodyParts.push(c);
-                    }
-
-                    if (c.parent.userData.constructionStep == stepCowHorns) {
-                        headParts.push(c);
-                    }
+        for (let c of cow.steps[stepCowBody]) {
+            if (colorSelect > 1) {
+                let idx = c.material.length > 1 ? 1 : 0;
+                if (!cowMat) {
+                    let color = new THREE.Color(altCowColor);
+                    cowMat = c.material[idx].clone();
+                    cowMat.color = color;
                 }
+                c.material[idx] = cowMat;
+            }
+        }
 
-                c.castShadow = true;
-                c.receiveShadow = true;
-            } );
+        for (let c of headParts) {
+            if (colorSelect > 0) {
+                if (!headMat) {
+                    let headColor = new THREE.Color(colorSelect % 2 > 0 ? altCowHeadColor : altCowColor);
+                    headMat = c.material[2].clone();
+                    headMat.color = headColor;
+                }
+                c.material[2] = headMat;
+            }
+        }
+
+        cow.head = headParts[0];
+        // cow.attach(cow.head);
+        for (let headPart of headParts) {
+            if (headPart !== cow.head) {
+                cow.head.attach(headPart);
+            }
+        }
+        for (let horn of horns) cow.head.attach(horn);
+
+        if (onLoad) onLoad(cow);
+
+    }, onProgress, onError);
+}
+
+export function initHorse(onLoad, onProgress, onError) {
+    initObj('horse',  horse => {
+            let colorSelect = Math.floor(Math.random() * 3);
+            for (let c of horse.steps[stepHorseRearLegs]) {
+                if (colorSelect > 0) {
+                    let color = new THREE.Color(altHorseColors[colorSelect - 1]);
+                    c.material[0].color = color;
+                }
+            }
+
+            let bodyParts = horse.steps[stepHorseBody];
+            let headParts = horse.steps[stepHorseHead];
 
             horse.body = bodyParts[0];
             for (let bodyPart of bodyParts) {
@@ -212,55 +180,35 @@ export function initPalmTree(onLoad, onProgress, onError) {
 
 function initPalmTreeCache(onLoad, onProgress, onError) {
     if (palmCache.base) {
-        onLoad();
+        if (onLoad) onLoad();
     } else {
-        var lDrawLoader = new LDrawLoader();
-        lDrawLoader.smoothNormals = WORLD.smoothNormals;
-
-        lDrawLoader.separateObjects = true;
-
-        lDrawLoader
-            .setPath( "ldraw/" )
-            .load( "models/palmtree.ldr_Packed.mpd", function ( model ) {
-                let meshes = [];
-
-                model.traverse( c => {
-                    c.visible = !c.isLineSegments;
-
-                    if (c.isMesh)
-                    {
-                        meshes.push(c);
-                       //  c.rotateX(-Math.PI);
-
-                        c.castShadow = true;
-                        c.receiveShadow = true;
-                    }
-                } );
+        initObj('palmtree', model => {
+            let meshes = model.steps[0];
 
             palmCache.base = meshes[0];
-            palmCache.base.translateY(-8);
+            palmCache.base.translateY(-WORLD.flatSize);
 
             palmCache.trunk = meshes[1];
-            palmCache.trunk.translateY(-36);
+            palmCache.trunk.translateY(-WORLD.flatSize * 4.5);
 
             palmCache.top = meshes[2];
-            palmCache.top.translateY(-40);
+            palmCache.top.translateY(-WORLD.flatSize * 5);
 
             let leaf = meshes[3];
 
-            leaf.translateY(-8);
-            leaf.translateZ(10);
+            leaf.translateY(-WORLD.flatSize);
+            leaf.translateZ(WORLD.studSize/2);
             palmCache.leaves.add(leaf.clone());
             leaf.rotateY(Math.PI);
-            leaf.translateZ(20);
+            leaf.translateZ(WORLD.studSize);
             palmCache.leaves.add(leaf.clone());
-            leaf.translateY(-8);
+            leaf.translateY(-WORLD.flatSize);
             leaf.rotateY(Math.PI/2);
-            leaf.translateZ(10);
-            leaf.translateX(10);
+            leaf.translateZ(WORLD.studSize/2);
+            leaf.translateX(WORLD.studSize/2);
             palmCache.leaves.add(leaf.clone());
             leaf.rotateY(Math.PI);
-            leaf.translateZ(20);
+            leaf.translateZ(WORLD.studSize);
             palmCache.leaves.add(leaf);
 
             if (onLoad) onLoad();
@@ -269,39 +217,9 @@ function initPalmTreeCache(onLoad, onProgress, onError) {
 }
 
 export function initStable(onLoad, onProgress, onError) {
-    var lDrawLoader = new LDrawLoader();
-    lDrawLoader.smoothNormals = WORLD.smoothNormals;
-
-    lDrawLoader.separateObjects = true;
-
-
-
-    lDrawLoader
-        .setPath( "ldraw/" )
-        .load( "models/stable.ldr_Packed.mpd", function ( model ) {
-
-            let parts = new Map();
-
-            model.traverse( c => {
-                c.visible = !c.isLineSegments;
-
-                if (c.isMesh)
-                {
-                    let step = c.parent.userData.constructionStep;
-                    if (!parts.has(step)) {
-                        let newGroup = [];
-                        parts.set(step, newGroup);
-                    }
-
-                    parts.get(step).push(c);
-
-                    c.castShadow = true;
-                    c.receiveShadow = true;
-                }
-            } );
-
+    initObj('stable',  model => {
         if (onLoad) {
-            for (let arr of parts.values()) {
+            for (let arr of model.steps) {
 
                 let group = new THREE.Group();
                 //model.add(group);
@@ -315,97 +233,36 @@ export function initStable(onLoad, onProgress, onError) {
     }, onProgress, onError);
 }
 
-export function initObj(name, onLoad, onProgress, onError) {
-    var lDrawLoader = new LDrawLoader();
-    lDrawLoader.smoothNormals = WORLD.smoothNormals;
-    lDrawLoader.separateObjects = true;
-
-    lDrawLoader
-        .setPath( "ldraw/" )
-        .load( "models/" + name + ".ldr_Packed.mpd", function ( obj ) {
-
-            // Convert from LDraw coordinates: rotate 180 degrees around OX
-            // minifig.rotateX(-Math.PI);
-
-
-            obj.traverse( c => {
-                c.visible = !c.isLineSegments;
-                if (c.isMesh)
-                {
-                    c.castShadow = true;
-                    c.receiveShadow = true;
-                }
-            } );
-            //console.log(obj);
-
-            if (onLoad) onLoad(obj);
-
-        }, onProgress, onError);
-}
-
 export function initMinifig(name, onLoad, onProgress, onError) {
+    initObj(name, minifig => {
 
-    var lDrawLoader = new LDrawLoader();
+        minifig.bodyParts = new Map();
 
-    lDrawLoader.smoothNormals = WORLD.smoothNormals;
+        for (let idx = 0; idx < minifig.steps.length; idx++) {
+            let arr = minifig.steps[idx];
 
-    lDrawLoader.separateObjects = true;
-
-    lDrawLoader
-        .setPath( "ldraw/" )
-        .load( "models/" + name + ".ldr_Packed.mpd", function ( minifig ) {
-
-            // Convert from LDraw coordinates: rotate 180 degrees around OX
-            // minifig.rotateX(-Math.PI);
-
-            // Adjust materials
-            let lhand, rhand;
-
-            minifig.bodyParts = new Map();
-
-            minifig.traverse( c => {
-                c.visible = !c.isLineSegments;
-                c.castShadow = true;
-                c.receiveShadow = true;
-
-                if (c.isMesh)
-                {
-                    let step = c.parent.userData.constructionStep;
-
-                    if (!minifig.bodyParts.has(step)) {
-                        let group = [];
-                        minifig.bodyParts.set(step, group);
-                    }
-
-                    minifig.bodyParts.get(step).push(c);
-                }
-            } );
-
-            for (let key of minifig.bodyParts.keys()) {
-                let arr = minifig.bodyParts.get(key);
-
+            if (arr.length > 0) {
                 for (let item of arr) {
                     if (item!= arr[0]) {
                         arr[0].attach(item);
                     }
                 }
-
-                minifig.bodyParts.set(key, arr[0]);
+                minifig.bodyParts.set(idx, arr[0]);
             }
+        }
 
-            minifig.bodyParts.get(BodyParts.RightArm).attach(minifig.bodyParts.get(BodyParts.RightHand));
-            if (minifig.bodyParts.has(BodyParts.RightItem)) {
-                minifig.bodyParts.get(BodyParts.RightHand).attach(minifig.bodyParts.get(BodyParts.RightItem));
-            }
+        minifig.bodyParts.get(BodyParts.RightArm).attach(minifig.bodyParts.get(BodyParts.RightHand));
+        if (minifig.bodyParts.has(BodyParts.RightItem)) {
+            minifig.bodyParts.get(BodyParts.RightHand).attach(minifig.bodyParts.get(BodyParts.RightItem));
+        }
 
-            minifig.bodyParts.get(BodyParts.LeftArm).attach(minifig.bodyParts.get(BodyParts.LeftHand));
-            if (minifig.bodyParts.has(BodyParts.LeftItem)) {
-                minifig.bodyParts.get(BodyParts.LeftHand).attach(minifig.bodyParts.get(BodyParts.LeftItem));
-            }
+        minifig.bodyParts.get(BodyParts.LeftArm).attach(minifig.bodyParts.get(BodyParts.LeftHand));
+        if (minifig.bodyParts.has(BodyParts.LeftItem)) {
+            minifig.bodyParts.get(BodyParts.LeftHand).attach(minifig.bodyParts.get(BodyParts.LeftItem));
+        }
 
-            //console.log(minifig);
+        //console.log(minifig);
 
-            if (onLoad) onLoad(minifig);
-
-        }, onProgress, onError);
+        if (onLoad) onLoad(minifig);
+    }, onProgress, onError);
 }
