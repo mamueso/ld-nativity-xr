@@ -1,6 +1,5 @@
 // import * as THREE from '../node_modules/three/build/three.module.js';
-
-import { initObj } from './Objects.js';
+import { loadModel } from './Objects.js';
 import * as ANIM from './Animations.js';
 
 export const studSize = 20;
@@ -54,8 +53,6 @@ export var currentSeason = seasons.normal;
 export const seasonPlateColor = [ 0xD67923, 0xBCB4A5 ]; // old autumn: 0x91501C
 export const seasonPlantColor = [ 0x77774E, 0x708E7C ];
 
-export const smoothNormals = true; // test this later, but takes longer for testing
-
 export const fencePlaceholder = 1;
 export const roadPlaceholder = 2;
 export const trackPlaceholder = 3;
@@ -63,7 +60,7 @@ export const trackDummyPlaceholder = 4;
 
 
 export function initPlates(onLoad, onProgress, onError) {
-    initObj('baseplate', obj => {
+    loadModel('baseplate', obj => {
         model = obj;
         // Convert from LDraw coordinates: rotate 180 degrees around OX
         model.rotateX(-Math.PI);
@@ -94,7 +91,7 @@ export function initPlates(onLoad, onProgress, onError) {
 }
 
 export function initScene(onLoad, onProgress, onError) {
-    initObj('ambient', obj => {
+    loadModel('ambient', obj => {
         // Convert from LDraw coordinates: rotate 180 degrees around OX
         obj.rotateX(-Math.PI);
 
@@ -172,7 +169,7 @@ function parcelFilter(value) {
 }
 
 export function initGate(onLoad, onProgress, onError) {
-    initObj('gate', gate => {
+    loadModel('gate', gate => {
         gate.position.z = -worldPlates * plateSize - studSize;
         model.add(gate);
         if (onLoad) onLoad(gate);
@@ -338,13 +335,13 @@ export function reserveParcelAt(x, z, mixer, placeHolder) {
 
 export function initRoads(onLoad, onProgress, onError, effectFunc) {
     if (model) {
-        initObj('road', roads => {
+        loadModel('road', roads => {
             // Convert from LDraw coordinates: rotate 180 degrees around OX
             roads.rotateX(-Math.PI);
 
             // Adjust materials
 
-            let roadPlate = roads.children[0];
+            roadPlate = roads.children[0];
 
             //for (let x = -roadPlates; x <= roadPlates; x+= 2 * roadPlates) {
                 let x = 0;

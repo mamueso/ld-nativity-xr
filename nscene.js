@@ -99,13 +99,14 @@ const playerCamHeight = 85;
 
 const cradleXOffset = 80, cradleZOffset = (WORLD.roadPlates * WORLD.plateSize) + 140;
 
-var sceneInitItems = 15; // counter for startup to render only if all scene items initialized
+const sceneTotalItems = 16;
+var sceneInitItems = sceneTotalItems; // counter for startup to render only if all scene items initialized
 
 var gameActive = false;
 
 const angelLightColor = 0xffffdd, rLightsColor = 0xff0000, windowColor = 0xffffbb;
 
-var angel;
+var angel, star;
 
 // main entry point
 init();
@@ -742,15 +743,25 @@ function initScene() {
             checkSceneInitItems();
         }, onProgress, onError);
 
+        initStable();
+        initAngel();
+        initStar();
 
-        OBJS.initStable(function(obj) {
+        absMaxDistance = WORLD.worldPlates * WORLD.plateSize - guyOffset;
+
+        checkSceneInitItems();
+
+    }, onProgress, onError );
+
+    function initStable() {
+        OBJS.initStable(function (obj) {
             obj.position.z = (WORLD.roadPlates + 0.5) * WORLD.plateSize;
             WORLD.model.add(obj);
             WORLD.addCollBox(obj);
             checkSceneInitItems();
         }, onProgress, onError);
 
-        OBJS.initObj('cradle', function(cradle) {
+        OBJS.loadModel('cradle', function (cradle) {
             cradle.translateZ(cradleZOffset);
             cradle.translateX(cradleXOffset);
             WORLD.model.add(cradle);
@@ -758,7 +769,7 @@ function initScene() {
             checkSceneInitItems();
         }, onProgress, onError);
 
-        OBJS.initObj('baby', function(baby) {
+        OBJS.loadModel('baby', function (baby) {
             baby.translateY(-32);
             baby.translateX(cradleXOffset - 20);
             baby.translateZ(cradleZOffset);
@@ -773,7 +784,7 @@ function initScene() {
                 }
             });
 
-            let light = new THREE.PointLight(angelLightColor,  2, 200, 2);
+            let light = new THREE.PointLight(angelLightColor, 2, 200, 2);
             light.visible = isNight;
             light.position.y = -30;
             light.position.x = 20;
@@ -784,27 +795,27 @@ function initScene() {
             checkSceneInitItems();
         }, onProgress, onError);
 
-        OBJS.initMinifig('joseph', function(minifig) {
+        OBJS.initMinifig('joseph', function (minifig) {
             minifig.position.z = cradleZOffset + 60;
             minifig.position.x = cradleXOffset + 40;
-            minifig.rotateY(Math.PI/8);
+            minifig.rotateY(Math.PI / 8);
             WORLD.model.add(minifig);
             WORLD.addCollBox(minifig);
             checkSceneInitItems();
         }, onProgress, onError);
 
-        OBJS.initMinifig('mary', function(minifig) {
+        OBJS.initMinifig('mary', function (minifig) {
             minifig.position.z = cradleZOffset + 60;
             minifig.position.x = cradleXOffset - 40;
-            minifig.rotateY(-Math.PI/8);
+            minifig.rotateY(-Math.PI / 8);
             WORLD.model.add(minifig);
             WORLD.addCollBox(minifig);
             checkSceneInitItems();
         }, onProgress, onError);
+    }
 
-        OBJS.initMinifig('angel', function(minifig) {
-            // WORLD.model.add(minifig);
-
+    function initAngel() {
+        OBJS.initMinifig('angel', function (minifig) {
             angel = new THREE.Group();
             WORLD.model.add(angel);
             angel.attach(minifig);
@@ -819,30 +830,48 @@ function initScene() {
                 }
             });
 
-            minifig.bodyParts.get(OBJS.BodyParts.LeftArm).rotateX(-Math.PI/8);
+            minifig.bodyParts.get(OBJS.BodyParts.LeftArm).rotateX(-Math.PI / 8);
 
-            let light = new THREE.PointLight(angelLightColor,  1.5, 500, 1.8);
+            let light = new THREE.PointLight(angelLightColor, 1.5, 500, 1.8);
 
             light.visible = isNight;
 
             light.position.z = 50;
-            light.position.y = 100;
+            light.position.y = 90;
             light.castShadow = true;
             angel.add(light);
             nightLights.push(light);
 
-            var action = mixer.clipAction(ANIM.createFloatAnimation('y', angel.position.y, 10, 5), angel);
+            let action = mixer.clipAction(ANIM.createFloatAnimation('y', angel.position.y, 10, 5), angel);
             action.setLoop(THREE.LoopRepeat).setDuration(5).play();
 
             checkSceneInitItems();
         }, onProgress, onError);
+    }
 
+    function initStar() {
+        OBJS.loadModel('star', obj => {
+            let mat = obj.steps[0][0].material[0];
+            mat.emissive = new THREE.Color(angelLightColor);
+            mat.emissiveIntensity = 3;
 
-        absMaxDistance = WORLD.worldPlates * WORLD.plateSize - guyOffset;
+            let action = mixer.clipAction(ANIM.createRotationAnimation(10, 'z'), obj);
+            action.setLoop(THREE.LoopRepeat).setDuration(10).play();
 
-        checkSceneInitItems();
+            star = new THREE.Group();
+            star.add(obj);
 
-    }, onProgress, onError );
+            star.position.y = -2500;
+            star.position.z = cradleZOffset;
+            star.position.x = cradleXOffset;
+
+            particleSystems.push(PTFX.starTrail(star, angelLightColor));
+
+            WORLD.model.add(star);
+
+            checkSceneInitItems();
+        }, onProgress, onError);
+    }
 
     function initSky() {
         var loader = new THREE.TextureLoader();
@@ -950,11 +979,8 @@ function addParcelEffect(x, z, height, time, size) {
 
 function onProgress( xhr ) {
     if ( xhr.lengthComputable ) {
-
         updateProgressBar( xhr.loaded / xhr.total );
-
-        console.log( Math.round( xhr.loaded / xhr.total * 100, 2 ) + '% downloaded' );
-
+        // console.log( Math.round( xhr.loaded / xhr.total * 100, 2 ) + '% downloaded' );
     }
 }
 
@@ -998,7 +1024,7 @@ function hideProgressBar() {
 }
 
 function updateProgressBar( fraction ) {
-    progressBarDiv.innerText = 'Loading... ' + Math.round( fraction * 100, 2 ) + '% (' + sceneInitItems + ' remaining)';
+    progressBarDiv.innerText = 'Loading... ' + Math.round( ((sceneTotalItems - sceneInitItems + fraction) / sceneTotalItems) * 100, 2 ) + '%';
 }
 
 function onWindowResize(update = true) {
@@ -1259,6 +1285,10 @@ function updateControls(delta) {
                 break;
             }
         }
+    }
+
+    if (star) {
+        star.lookAt(controls.getObject().position);
     }
 
     if (angel) {

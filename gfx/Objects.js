@@ -20,9 +20,9 @@ const palmCache = { base: null, trunk: null, top: null, leaves: new THREE.Group(
 
 //todo: cache also for animals
 
-export function initObj(name, onLoad, onProgress, onError, isBasePlate = false) {
+export function loadModel(name, onLoad, onProgress, onError, isBasePlate = false) {
     var lDrawLoader = new LDrawLoader();
-    lDrawLoader.smoothNormals = WORLD.smoothNormals && !isBasePlate;
+    lDrawLoader.smoothNormals = !isBasePlate;
     lDrawLoader.separateObjects = true;
 
     lDrawLoader
@@ -57,7 +57,7 @@ export function initObj(name, onLoad, onProgress, onError, isBasePlate = false) 
 }
 
 export function initCow(onLoad, onProgress, onError) {
-   initObj('cow', cow => {
+   loadModel('cow', cow => {
         let horns = cow.steps[stepCowHorns];
         let headParts = cow.steps[stepCowHead];
 
@@ -104,7 +104,7 @@ export function initCow(onLoad, onProgress, onError) {
 }
 
 export function initHorse(onLoad, onProgress, onError) {
-    initObj('horse',  horse => {
+    loadModel('horse',  horse => {
             let colorSelect = Math.floor(Math.random() * 3);
             for (let c of horse.steps[stepHorseRearLegs]) {
                 if (colorSelect > 0) {
@@ -140,8 +140,6 @@ export function initHorse(onLoad, onProgress, onError) {
 export function initPalmTree(onLoad, onProgress, onError) {
     initPalmTreeCache(function () {
         let newPalmTree = new THREE.Group();
-
-        //newPalmTree.rotateX(-Math.PI);
 
         let base = palmCache.base.clone();
         newPalmTree.add(base);
@@ -182,7 +180,7 @@ function initPalmTreeCache(onLoad, onProgress, onError) {
     if (palmCache.base) {
         if (onLoad) onLoad();
     } else {
-        initObj('palmtree', model => {
+        loadModel('palmtree', model => {
             let meshes = model.steps[0];
 
             palmCache.base = meshes[0];
@@ -217,7 +215,7 @@ function initPalmTreeCache(onLoad, onProgress, onError) {
 }
 
 export function initStable(onLoad, onProgress, onError) {
-    initObj('stable',  model => {
+    loadModel('stable',  model => {
         if (onLoad) {
             for (let arr of model.steps) {
 
@@ -234,7 +232,7 @@ export function initStable(onLoad, onProgress, onError) {
 }
 
 export function initMinifig(name, onLoad, onProgress, onError) {
-    initObj(name, minifig => {
+    loadModel(name, minifig => {
 
         minifig.bodyParts = new Map();
 
