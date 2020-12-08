@@ -99,7 +99,7 @@ const playerCamHeight = 85;
 
 const cradleXOffset = 80, cradleZOffset = (WORLD.roadPlates * WORLD.plateSize) + 140;
 
-const sceneTotalItems = 16;
+const sceneTotalItems = 17;
 var sceneInitItems = sceneTotalItems; // counter for startup to render only if all scene items initialized
 
 var gameActive = false;
@@ -861,7 +861,7 @@ function initScene() {
             star = new THREE.Group();
             star.add(obj);
 
-            star.position.y = -2500;
+            star.position.y = -2800;
             star.position.z = cradleZOffset;
             star.position.x = cradleXOffset;
 

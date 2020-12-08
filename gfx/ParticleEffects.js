@@ -264,7 +264,7 @@ export function starTrail(parent, color) {
             texture: tex,
             //alpha: 1,
             globalColor: new THREE.Color(color),
-            startAlpha: 0.75,
+            startAlpha: 0.6,
             endAlpha: 0,
             startAlphaChangeAt : 0,
             blending: 'additive',
