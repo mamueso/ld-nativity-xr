@@ -14,9 +14,13 @@ import * as WORLD from './gfx/World.js';
 import * as ANIM from './gfx/Animations.js';
 import * as OBJS from './gfx/Objects.js'
 import * as SFX from './audio/SoundFX.js';
+// import * as MSX from './audio/Music.js';
 import * as PTFX from './gfx/ParticleEffects.js';
 
-export var camera, controls, gpControls, scene, renderer, raycaster, intersectedObject, composer;
+export var controls, gpControls, raycaster, intersectedObject, composer;
+var renderer, rightRenderer, leftRenderer;
+var scene, rightScene, leftScene;
+var camera, rightCam, leftCam;
 var particleSystems = [];
 
 //var rayHelper = new THREE.ArrowHelper();
@@ -79,6 +83,8 @@ var gui, gfxFolder, controlsFolder, audioFolder, gameFolder;
 
 var blocker = document.getElementById( 'blocker' );
 var instructions = document.getElementById( 'instructions' );
+var rightCanvas = document.getElementById( 'rightCanvas' );
+var leftCanvas = document.getElementById( 'leftCanvas' );
 
 var fpsLabel = document.getElementById('fpsLabel');
 
@@ -99,7 +105,7 @@ const playerCamHeight = 85;
 
 const cradleXOffset = 80, cradleZOffset = (WORLD.roadPlates * WORLD.plateSize) + 140;
 
-const sceneTotalItems = 17;
+const sceneTotalItems = 19;
 var sceneInitItems = sceneTotalItems; // counter for startup to render only if all scene items initialized
 
 var gameActive = false;
@@ -115,8 +121,9 @@ function init() {
     initTouchControls(true);
     initScene();
     initControls();
-    //SFX.init(camera);
+    SFX.init(camera);
     initGUI();
+    initAdditionalAnim();
 }
 
 function initControls() {
@@ -485,6 +492,8 @@ function startGame() {
     gameActive = true;
 
     SFX.resume();
+
+    //MSX.play(SFX.listener);
 }
 
 function updateBlocker(hide) {
@@ -494,6 +503,10 @@ function updateBlocker(hide) {
     } else {
         blocker.style.display = 'block';
         instructions.style.display = '';
+        if (rightRenderer) {
+            resizeBlockerRenderer();
+            animateBlocker();
+        }
     }
 }
 
@@ -723,7 +736,7 @@ function initScene() {
             WORLD.initGate(checkSceneInitItems, onProgress, onError);
             initSky(checkSceneInitItems, onProgress, onError);
             WORLD.populatePlants(10, gameSettings.itemAmount);
-            addPalmTree(Math.round(40 * (gameSettings.itemAmount / 100)));
+            addPalmTree(Math.round(40 * (gameSettings.itemAmount / 100)), PTFX.generateWind(20));
             checkSceneInitItems();
         }, onProgress, onError);
 
@@ -842,7 +855,7 @@ function initScene() {
             angel.add(light);
             nightLights.push(light);
 
-            let action = mixer.clipAction(ANIM.createFloatAnimation('y', angel.position.y, 10, 5), angel);
+            let action = mixer.clipAction(ANIM.createFloatAnimation('y', angel.position.y, 10, 8), angel);
             action.setLoop(THREE.LoopRepeat).setDuration(5).play();
 
             checkSceneInitItems();
@@ -947,7 +960,9 @@ function createSky() {
     walkClock.start();
 }
 
-function addPalmTree(count) {
+function addPalmTree(count, wind) {
+    let maxAngle = 1.0 * Math.PI / 180;
+
     for (let idx = 0; idx < count; idx++) {
         let parcelIdx = Math.floor(Math.random() * (WORLD.freeParcels.length));
 
@@ -964,9 +979,17 @@ function addPalmTree(count) {
             parcel.mapObjId = WORLD.MapObjectId.plant;
 
             palmTree.parcel = parcel;
+
+            if (wind && palmTree.segments.length > 0) {
+                let timeOffset = Math.random() * 5;
+                for (let segment of palmTree.segments) {
+                    let xAction = mixer.clipAction(ANIM.createPalmSegmentWindAnimation(wind, segment, maxAngle, 5), segment);
+                    xAction.setLoop(THREE.LoopRepeat).setDuration(5).play();
+                    xAction.time = timeOffset;
+                }
+            }
         }, onProgress, onError);
     }
-
 }
 
 
@@ -1063,6 +1086,10 @@ function onWindowResize(update = true) {
     fpsLabel.style.lineHeight = fpsLabel.style.fontSize;
 
     gfxSettings.fullScreen = (window.screen.width == window.innerWidth); // API not working when triggered with F11
+
+    if (rightRenderer) {
+        resizeBlockerRenderer();
+    }
 
     if (update) {
         preRender();
@@ -1379,7 +1406,7 @@ function checkAndEndWeatherEffects(blend = true) {
 
     if (isNight && !particleEffects.snow) {
         if (!particleEffects.stars) {
-            particleEffects.stars = PTFX.starsAbove(scene);
+            particleEffects.stars = PTFX.starsAbove(scene, 1.5);
             particleSystems.push(particleEffects.stars);
         }
     } else {
@@ -1463,9 +1490,9 @@ function closeFullscreen() {
     } else if (document.msExitFullscreen) { /* IE/Edge */
       document.msExitFullscreen();
     }
-  }
+}
 
-  function toggleFullScreen() {
+function toggleFullScreen() {
     var doc = window.document;
     var docEl = doc.body;
 
@@ -1478,4 +1505,114 @@ function closeFullscreen() {
     else {
       cancelFullScreen.call(doc);
     }
-  }
+}
+
+function initAdditionalAnim() {
+    // set the candles and ornaments according to advent date
+    let now = new Date();
+    let date = new Date(now.getFullYear(), 11, 24, 0, 0, 0, 0); // month is 0 based!
+    let deltaDays = (now - date) / (1000 * 3600 * 24.0);
+
+    OBJS.loadModel('wreath', obj => {
+        rightRenderer = new THREE.WebGLRenderer( { antialias: gfxSettings.antiAlias, alpha: true } );
+        if (!isTouch) {
+            rightRenderer.setPixelRatio( window.devicePixelRatio );
+        }
+        rightRenderer.shadowMap.enabled = false;
+
+        rightRenderer.domElement.setAttribute('style', "position: absolute; top: 0px; left: 0px; right: 0px; bottom: 0px; margin: auto");
+        rightCanvas.appendChild(rightRenderer.domElement);
+        rightScene = new THREE.Scene();
+
+        obj.rotateX(-Math.PI);
+
+        for (let mesh of obj.steps[1]) {
+            let mat = mesh.material[0];
+            mat.emissive = mat.color;
+            mat.emissiveIntensity = 0.3;
+        }
+
+        let advDelta = deltaDays + date.getDay(); // 4th advent sunday
+
+        let count = 0;
+        while (advDelta < 0 && count < obj.steps[1].length) {
+            obj.steps[1][count].parent.remove(obj.steps[1][count]);
+            advDelta += 7;
+            count++;
+        }
+
+        rightScene.add(obj);
+
+        rightScene.add(new THREE.DirectionalLight(0xffffff, 1).translateX(100).translateY(100).translateZ(100));
+        rightScene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 0.6));
+
+        rightCam = new THREE.PerspectiveCamera( 30, rightCanvas.clientWidth / rightCanvas.clientHeight, 1, 1000 );
+
+        rightCam.up = new THREE.Vector3(0, 1, 0);
+        rightCam.position.set(0, 100, 400);
+        rightCam.lookAt(0, 40, 0);
+
+        checkSceneInitItems();
+
+    }, onProgress, onError);
+
+    OBJS.loadModel('xtree', obj => {
+        leftRenderer = new THREE.WebGLRenderer( { antialias: gfxSettings.antiAlias, alpha: true } );
+        if (!isTouch) {
+            leftRenderer.setPixelRatio( window.devicePixelRatio );
+        }
+        leftRenderer.shadowMap.enabled = false;
+
+        leftRenderer.domElement.setAttribute('style', "position: absolute; top: 0px; left: 0px; right: 0px; bottom: 0px; margin: auto");
+        leftCanvas.appendChild(leftRenderer.domElement);
+        leftScene = new THREE.Scene();
+
+        obj.rotateX(-Math.PI);
+        leftScene.add(obj);
+
+        console.log(deltaDays);
+        if (deltaDays < 0 && deltaDays > -352) {
+            for (let stepIdx = 1; stepIdx <= 2; stepIdx++) {
+                for (let item of obj.steps[stepIdx]) {
+                    item.parent.remove(item);
+                }
+            }
+        }
+
+        leftScene.add(new THREE.DirectionalLight(0xffffff, 1).translateX(100).translateY(100).translateZ(100));
+        leftScene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 0.6));
+
+        leftCam = new THREE.PerspectiveCamera( 30, leftCanvas.clientWidth / leftCanvas.clientHeight, 1, 1600 );
+
+        leftCam.up = new THREE.Vector3(0, 1, 0);
+        leftCam.position.set(0, 150, 400);
+        leftCam.lookAt(0, 90, 0);
+
+        checkSceneInitItems();
+
+    }, onProgress, onError);
+}
+
+function resizeBlockerRenderer() {
+    rightCam.aspect = rightCanvas.clientWidth / rightCanvas.clientHeight;
+    rightCam.updateProjectionMatrix();
+
+    rightRenderer.setSize( rightCanvas.clientWidth, rightCanvas.clientHeight, true);
+
+    leftCam.aspect = leftCanvas.clientWidth / leftCanvas.clientHeight;
+    leftCam.updateProjectionMatrix();
+
+    leftRenderer.setSize( leftCanvas.clientWidth, leftCanvas.clientHeight, true);
+}
+
+function animateBlocker(){
+    if (!gameActive) requestAnimationFrame(animateBlocker);
+
+    let rot = 0.002;
+
+    rightScene.children[0].rotateY(rot);
+    rightRenderer.render(rightScene, rightCam);
+
+    leftScene.children[0].rotateY(rot);
+    leftRenderer.render(leftScene, leftCam);
+}

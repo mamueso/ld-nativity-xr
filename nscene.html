@@ -75,7 +75,6 @@
 				}
 
 			#instructions {
-
 				width: 100%;
 				height: 100%;
 
@@ -104,6 +103,7 @@
 				line-height: 22px;
 
 				cursor: pointer;
+				z-index: 200;
 			}
 
 			#touchControls {
@@ -248,16 +248,40 @@
 				top: 0px;
 				right: 20px;
 			}
+
+			#leftCanvas {
+				display: inherit;
+				position: absolute;
+				/* background-color: red; */
+				top: 20%;
+				left: 5px;
+				width: 35%;
+				height: 60%;
+				z-index: -1;
+			}
+
+			#rightCanvas {
+				display: inherit;
+				position: absolute;
+				/* background-color: red; */
+				top: 20%;
+				right: 5px;
+				width: 35%;
+				height: 60%;
+				z-index: -1;
+			}
 		</style>
 	</head>
 
 	<body>
 		<div id="fpsLabel">- FPS</div>
 		<div id="blocker">
+			<div id="leftCanvas"></div>
+			<div id="rightCanvas"></div>
 			<div id="instructions">
 				<span style="font-size:28px; color: lime">A virtual nativity scene...</span>
 				<br/>
-				<span style="color: lime; font-family:monospace">v. 0.1.1</span>
+				<span style="color: lime; font-family:monospace">v. 0.1.5</span>
 				<br/><br/>
 				<span id="clickSpan" style="font-size:32px">&#9658; Click to explore</span>
 				<br/><br/>

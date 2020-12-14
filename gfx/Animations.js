@@ -36,6 +36,20 @@ export function createFloatAnimation(axis, initialValue, delta, period) {
     return new THREE.AnimationClip('float', period, [track]);
 }
 
+export function createPalmSegmentWindAnimation(wind, segment, maxAngle, period) {
+    let windvec = new THREE.Vector3().copy(wind).normalize();
+    let xAngle = maxAngle * windvec.z;
+    let zAngle = maxAngle * windvec.x;
+
+    var times = [0, period/2, period];
+    var xValues = [segment.rotation.x + xAngle, segment.rotation.x - xAngle/3, segment.rotation.x + xAngle];
+    var zValues = [segment.rotation.z + zAngle, segment.rotation.z - zAngle/3, segment.rotation.z + zAngle];
+
+    var xTrack = new THREE.NumberKeyframeTrack('.rotation[x]', times, xValues, THREE.InterpolateSmooth);
+    var zTrack = new THREE.NumberKeyframeTrack('.rotation[z]', times, zValues, THREE.InterpolateSmooth);
+    return new THREE.AnimationClip('wind', period, [xTrack, zTrack]);
+}
+
 export function createScaleAnimation(period, axis) {
     var times = [0, period], values = [0, 1];
     axis = axis || 'y';

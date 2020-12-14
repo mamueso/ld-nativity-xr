@@ -158,7 +158,8 @@ export function starsAbove(scene, intensity = 1.0) {
             }),
             speed: 1,
             perspective: true,
-            scale: 500
+            scale: 500,
+            depthWrite: false
         }
     });
 
@@ -260,30 +261,31 @@ export function starTrail(parent, color) {
     let system = new Partykals.ParticlesSystem({
         container: parent,
         particles: {
-            globalSize: 30,
+            globalSize: 25,
             texture: tex,
             //alpha: 1,
             globalColor: new THREE.Color(color),
-            startAlpha: 0.6,
+            startAlpha: 0.5,
             endAlpha: 0,
             startAlphaChangeAt : 0,
             blending: 'additive',
             velocity: new Partykals.Randomizers.SphereRandomizer(20, 1),
             velocityBonus: new THREE.Vector3(100, 20, 0),
             gravity: -10,
-            ttl: 2,
-            ttlExtra : 4,
-            offset: new Partykals.Randomizers.BoxRandomizer(new THREE.Vector3(-8, -8, -8), new THREE.Vector3(8, 8, 8)),
+            ttl: 1.5,
+            ttlExtra : 5,
+            offset: new Partykals.Randomizers.BoxRandomizer(new THREE.Vector3(-5, -5, -5), new THREE.Vector3(5, 5, 5)),
         },
         system: {
             particlesCount: 10000,
             emitters: new Partykals.Emitter({
-                onInterval: 10,
+                onInterval: 8,
                 interval: 0.05, //new Partykals.Randomizers.MinMaxRandomizer(0, 0.25),
             }),
             speed: 1,
             perspective: true,
             scale: 500,
+            depthWrite: false
         }
     });
 

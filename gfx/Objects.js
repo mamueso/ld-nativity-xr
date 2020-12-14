@@ -150,6 +150,8 @@ export function initPalmTree(onLoad, onProgress, onError) {
         let angleX;
         let angleZ;
 
+        newPalmTree.segments = [];
+
         for (let n = 0; n < count; n++ ) {
             let newTrunk = palmCache.trunk.clone();
 
@@ -163,7 +165,9 @@ export function initPalmTree(onLoad, onProgress, onError) {
             trunk.add(newTrunk);
             trunk = newTrunk;
 
-            if (n == 2 && onLoad) {
+            newPalmTree.segments.push(newTrunk);
+
+            if (n == 3 && onLoad) {
                 onLoad(newPalmTree);  // call here, so the coll box does not include the leaves
             }
         }
