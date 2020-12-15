@@ -293,3 +293,40 @@ export function starTrail(parent, color) {
     return system;
 }
 
+
+export function fire(parent) {
+    let system = new Partykals.ParticlesSystem({
+        container: parent,
+        particles: {
+            globalSize: 50,
+            //texture: tex,
+            //alpha: 1,
+            startColor: new THREE.Color(0xffff66),
+            endColor: new THREE.Color(0xff0000),
+            startAlpha: 0.2,
+            endAlpha: 0,
+            //startAlphaChangeAt : 0,
+            blending: 'blend',
+            velocity: new Partykals.Randomizers.SphereRandomizer(20, 1),
+            velocityBonus: new THREE.Vector3(0, -70, 0),
+            gravity: 10,
+            ttl: 0.05,
+            ttlExtra : 1.2,
+            offset: new Partykals.Randomizers.BoxRandomizer(new THREE.Vector3(-8.0, -0.5, -8.0), new THREE.Vector3(8.0, 0, 8.0)),
+        },
+        system: {
+            particlesCount: 5000,
+            emitters: new Partykals.Emitter({
+                onInterval: 25,
+                interval: 0.02, //new Partykals.Randomizers.MinMaxRandomizer(0, 0.25),
+            }),
+            speed: 1,
+            perspective: true,
+            scale: 100,
+            depthWrite: false
+        }
+    });
+
+    system.type = ptfxType.sstars;
+    return system;
+}

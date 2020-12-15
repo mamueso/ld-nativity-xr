@@ -58,6 +58,21 @@ export function createScaleAnimation(period, axis) {
     return new THREE.AnimationClip(null, period, [track]);
 }
 
+export function createFlickerEffect(minIntensity, maxIntensity, distance, period, smooth = false) {
+    var times = [];
+    var values = [];
+    var distances = [];
+    for (let t = 0; t <=10; t++) {
+        times.push(t / 10.0);
+        let value = (Math.random() * (maxIntensity - minIntensity)) + minIntensity;
+        values.push(value);
+        distances.push(((value - 1) / 5 + 1) * distance);
+    }
+    var track = new THREE.NumberKeyframeTrack('.intensity', times, values, smooth ? THREE.InterpolateSmooth : THREE.InterpolateDiscrete);
+    var dTrack = new THREE.NumberKeyframeTrack('.distance', times, distances, THREE.InterpolateLinear);
+    return new THREE.AnimationClip('flicker', period, [track, dTrack]);
+}
+
 export function createGrowAnimation(period) {
     var times = [0, period], values = [0, 1];
     var xTrack = new THREE.NumberKeyframeTrack('.scale[x]', times, values);

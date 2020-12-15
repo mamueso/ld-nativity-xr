@@ -1,3 +1,5 @@
+
+import './web_modules/seedrandom/seedrandom.min.js';
 // import * as THREE from './node_modules/three/build/three.module.js';
 // import { GUI } from './node_modules/three/examples/jsm/libs/dat.gui.module.js';
 import { GUI } from './web_modules/three/examples/jsm/libs/dat.gui.module.js';
@@ -105,8 +107,10 @@ const playerCamHeight = 85;
 
 const cradleXOffset = 80, cradleZOffset = (WORLD.roadPlates * WORLD.plateSize) + 140;
 
-const sceneTotalItems = 19;
+const sceneTotalItems = 20;
 var sceneInitItems = sceneTotalItems; // counter for startup to render only if all scene items initialized
+
+var sceneInitFuncs = [];
 
 var gameActive = false;
 
@@ -123,7 +127,7 @@ function init() {
     initControls();
     SFX.init(camera);
     initGUI();
-    initAdditionalAnim();
+    initBlockerAnim();
 }
 
 function initControls() {
@@ -688,6 +692,15 @@ function setMasterVolume() {
     }
 }
 
+function queueSceneItem(initFunc, onLoad, autostart = false) {
+    sceneInitFuncs.push({ func: initFunc, loadFunc: obj => {
+        if (onLoad) onLoad(obj);
+        checkSceneInitItems();
+    } });
+}
+
+
+
 function initScene() {
 
     showProgressBar();
@@ -720,6 +733,7 @@ function initScene() {
     }
 
     mixer = new THREE.AnimationMixer(scene);
+
 
     WORLD.initPlates(function ( newModel ) {
         scene.add(newModel);
@@ -760,6 +774,9 @@ function initScene() {
         initAngel();
         initStar();
 
+        addFires([WORLD.parcels[WORLD.getParcelIndex(-WORLD.plateSize / 2, (WORLD.roadPlates + 0.35) * WORLD.plateSize)],
+                  WORLD.parcels[WORLD.getParcelIndex(WORLD.plateSize * 2, 0)]]);
+
         absMaxDistance = WORLD.worldPlates * WORLD.plateSize - guyOffset;
 
         checkSceneInitItems();
@@ -797,7 +814,7 @@ function initScene() {
                 }
             });
 
-            let light = new THREE.PointLight(angelLightColor, 2, 200, 2);
+            let light = new THREE.PointLight(angelLightColor, 1.8, 200, 2);
             light.visible = isNight;
             light.position.y = -30;
             light.position.x = 20;
@@ -901,13 +918,16 @@ function initScene() {
                 createSky();
                 updateNightMode(false);
                 checkSceneInitItems();
-            }, xhr => {
-                console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
-            }, error => { console.log("An error happened" + error); });
+            }, onProgress, onError);
     }
 }
 
 function checkSceneInitItems() {
+
+    if (sceneInitFuncs.length > 0) {
+
+    }
+
     if (--sceneInitItems <= 0) {
         hideProgressBar();
         updateBlocker(false);
@@ -990,6 +1010,37 @@ function addPalmTree(count, wind) {
             }
         }, onProgress, onError);
     }
+}
+
+function addFires(parcels) {
+    OBJS.loadModel("fireplace", obj => {
+        for (let p of parcels) {
+            let fire = obj.clone();
+            fire.translateX(p.x);
+            fire.translateZ(p.z);
+            fire.rotateY(Math.PI * Math.random() * 2);
+            WORLD.model.add(fire);
+
+            WORLD.addCollBox(fire);
+
+            p.occupied = fire;
+            p.mapObjId = WORLD.MapObjectId.plant;
+
+            particleSystems.push(PTFX.fire(fire));
+
+            let light = new THREE.PointLight(0xffaa33, 1, 400, 1.2);
+            light.translateY(-100);
+            light.castShadow = true;
+            let action = mixer.clipAction(ANIM.createFlickerEffect(0.95, 1.25, light.distance, 1, true), light);
+            action.setLoop(THREE.LoopRepeat).setDuration(0.75).play();
+            fire.add(light);
+
+            light.visible = isNight;
+            nightLights.push(light);
+        }
+
+        checkSceneInitItems();
+    }, onProgress, onError);
 }
 
 
@@ -1507,7 +1558,7 @@ function toggleFullScreen() {
     }
 }
 
-function initAdditionalAnim() {
+function initBlockerAnim() {
     // set the candles and ornaments according to advent date
     let now = new Date();
     let date = new Date(now.getFullYear(), 11, 24, 0, 0, 0, 0); // month is 0 based!
