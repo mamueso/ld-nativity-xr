@@ -1,6 +1,6 @@
-
+import './web_modules/three/build/three.min.js';
 import './web_modules/seedrandom/seedrandom.min.js';
-// import * as THREE from './node_modules/three/build/three.module.js';
+
 // import { GUI } from './node_modules/three/examples/jsm/libs/dat.gui.module.js';
 import { GUI } from './web_modules/three/examples/jsm/libs/dat.gui.module.js';
 // import { MapControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
@@ -19,15 +19,13 @@ import * as SFX from './audio/SoundFX.js';
 // import * as MSX from './audio/Music.js';
 import * as PTFX from './gfx/ParticleEffects.js';
 
-export var controls, gpControls, raycaster, intersectedObject, composer;
+var controls, gpControls, composer;
 var renderer, rightRenderer, leftRenderer;
 var scene, rightScene, leftScene;
 var camera, rightCam, leftCam;
 var particleSystems = [];
 
 //var rayHelper = new THREE.ArrowHelper();
-
-var testMode = false;
 
 var isElectronApp = (navigator.userAgent.toLowerCase().indexOf(' electron/') > -1); // detect whether run as electron app
 
@@ -40,9 +38,7 @@ const particleEffects = { rain: null, snow: null, stars: null, shootingStars: nu
 var animClock = new THREE.Clock();
 var walkClock = new THREE.Clock();
 
-var playerGuy;
 const guyOffset = 20;
-var lastGuyPos = new THREE.Vector3();
 
 var winterWeatherChangeTimeout;
 
@@ -79,7 +75,7 @@ var qualityNames = { High: 1, Low : 2};
 var audioSettings = { enabled : true, volume: 100 };
 var gamepadSettings = { enabled: true, moveSensitivity: 1, lookSensitivity: 1 };
 var gfxSettings = { resolution: resolutionNames.Auto, quality: qualityNames.High, fullScreen: false, shadows: isTouch ? 0 : 3 , antiAlias: true , showFPS: false};
-var gameSettings = { itemAmount: isTouch ? 20 : 50, nightEnabled: false, season : WORLD.seasons.normal };
+var gameSettings = { itemAmount: isTouch ? 50 : 100, nightEnabled: false, season: WORLD.seasons.normal, seed: 'EmptyForRandom' };
 
 var gui, gfxFolder, controlsFolder, audioFolder, gameFolder;
 
@@ -107,14 +103,13 @@ const playerCamHeight = 85;
 
 const cradleXOffset = 80, cradleZOffset = (WORLD.roadPlates * WORLD.plateSize) + 140;
 
-const sceneTotalItems = 20;
-var sceneInitItems = sceneTotalItems; // counter for startup to render only if all scene items initialized
+var sceneTotalItems, sceneInitItems = 1; // counter for startup to render only if all scene items initialized
 
 var sceneInitFuncs = [];
 
 var gameActive = false;
 
-const angelLightColor = 0xffffdd, rLightsColor = 0xff0000, windowColor = 0xffffbb;
+const angelLightColor = 0xffffdd;
 
 var angel, star;
 
@@ -124,48 +119,49 @@ init();
 function init() {
     initTouchControls(true);
     initScene();
+    initGUI();
     initControls();
     SFX.init(camera);
-    initGUI();
+    applyInitialSettings();
     initBlockerAnim();
+    initObjects();
+}
+
+function applyInitialSettings() {
+    onWindowResize(false);
+    updateFPSLabel();
+    updateShadows(gfxSettings.shadows);
+    setMasterVolume();
+    setGamepadEnabled();
+    gpControls.moveSensitivity = gamepadSettings.moveSensitivity;
+    gpControls.lookSensitivity = gamepadSettings.lookSensitivity;
+    setSeason(gameSettings.season);
 }
 
 function initControls() {
 
     renderer = new THREE.WebGLRenderer( { antialias: gfxSettings.antiAlias } );
-    //renderer = new THREE.WebGLRenderer( { antialias: false } );
     if (!isTouch) {
         renderer.setPixelRatio( window.devicePixelRatio );
     }
 
     renderer.setSize( window.innerWidth, window.innerHeight );
-
-    updateShadows(gameSettings.shadow);
-    // renderer.physicallyCorrectLights = true;
+    // updateShadows(gameSettings.shadow);
 
     renderer.domElement.setAttribute('style', "position: absolute; top: 0px; left: 0px; right: 0px; bottom: 0px; margin: auto");
     document.body.insertBefore( renderer.domElement, document.getElementById( 'blocker' ));
-
 
     // document.body.appendChild(renderer.domElement);
 
     camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 12000 );
 
     camera.up = new THREE.Vector3(0, 1, 0);
-    // camera.position.set(WORLD.plateSize, 85, WORLD.plateSize );
-    camera.position.set(0, playerCamHeight, WORLD.worldPlates * WORLD.plateSize);
-    // camera.rotateX(Math.PI);
 
-    // addCrossHair(camera);
+    camera.position.set(0, playerCamHeight, WORLD.worldPlates * WORLD.plateSize);
 
     // initComposer();
 
-    raycaster = new THREE.Raycaster();
-
-    // raycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, -1, 0 ), 0 , 1000);
-
     controls = new PointerLockControls( camera, document.body );
-
     gpControls = new GamepadControls( controls );
 
     let gamePadButtonActions = [];
@@ -183,14 +179,12 @@ function initControls() {
                                             }
                                          };
     gamePadButtonActions[16] = gamePadButtonActions[9];
-
     gpControls.buttonActions = gamePadButtonActions;
-    // gpControls.moveAction = checkChrystals;
 
     scene.add( controls.getObject() );
 
     if (isTouch) {
-        instructions.addEventListener( 'touchstart', function (e) {
+        instructions.addEventListener( 'touchstart', function () {
             openFullscreen();
             window.history.pushState({}, '');
             startGame();
@@ -338,11 +332,6 @@ function toggleSeason() {
     setSeason(gameSettings.season);
 }
 
-function initComposer() {
-    composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-    composer.addPass(new SMAAPass(window.innerWidth, window.innerHeight));
-}
 
 function jump() {
     if (canJump === true)
@@ -515,11 +504,8 @@ function updateBlocker(hide) {
 }
 
 function initGUI() {
-
     gui = new GUI( { autoPlace: false } );
-
     gui.useLocalStorage = true;
-
     gui.remember(gfxSettings);
     gui.remember(audioSettings);
     gui.remember(gamepadSettings);
@@ -527,18 +513,19 @@ function initGUI() {
 
     gfxFolder = gui.addFolder ("Graphics settings");
 
-    gfxFolder.add(gfxSettings, "resolution", resolutionNames).name("Resolution").onChange(function(value) {
+    gfxFolder.add(gfxSettings, "resolution", resolutionNames).name("Resolution").onChange(function() {
         // update resolution
         onWindowResize();
     });
 
-    gfxFolder.add(gfxSettings, "quality", qualityNames).name("Render quality").onChange(function(value) {
+    gfxFolder.add(gfxSettings, "quality", qualityNames).name("Render quality").onChange(function() {
         // update resolution
         onWindowResize();
     });
 
-    onWindowResize(false);
-
+    gfxFolder.add(gfxSettings, "antiAlias").name("*Antialiasing");//.onChange(function(value) {
+        // would need to reset context - so it's a bit complex
+    //});
 
     // does not work when starting fullscreen with F11 :(
     /*
@@ -560,45 +547,31 @@ function initGUI() {
         preRender();
     });
 
-    updateShadows(gfxSettings.shadows);
-
-    gfxFolder.add(gfxSettings, "showFPS").name("Show FPS").onChange(function(value){
+    gfxFolder.add(gfxSettings, "showFPS").name("Show FPS").onChange(function(){
             updateFPSLabel();
     });
-    updateFPSLabel();
-
-    /*
-    gfxFolder.add(gfxSettings, "antiAlias").name("Antialias").onChange(function(value) {
-        // would need to reset context - so it's a bit complex
-    });
-    */
 
     audioFolder = gui.addFolder("Audio settings");
-    audioFolder.add(audioSettings, "enabled").name("Enabled").onChange(function (value) {
+    audioFolder.add(audioSettings, "enabled").name("Enabled").onChange(function () {
         setMasterVolume();
     });
-    audioFolder.add(audioSettings, "volume", 0, 100).name("Volume").step(1).onChange(function (value) {
+    audioFolder.add(audioSettings, "volume", 0, 100).name("Volume").step(1).onChange(function () {
         setMasterVolume();
     });
-
-    setMasterVolume();
 
     controlsFolder = gui.addFolder("Gamepad settings");
     controlsFolder.add(gamepadSettings, "enabled").name("Enabled").onChange(setGamepadEnabled);
     controlsFolder.add(gamepadSettings, "moveSensitivity", 0.1, 2).step(0.1).name("Move sensitivity").onChange(function (value) {
         gpControls.moveSensitivity = value;
     });
+
     controlsFolder.add(gamepadSettings, "lookSensitivity", 0.1, 2).step(0.1).name("Look sensitivity").onChange(function (value) {
         gpControls.lookSensitivity = value;
     });
 
-    gpControls.moveSensitivity = gamepadSettings.moveSensitivity;
-    gpControls.lookSensitivity = gamepadSettings.lookSensitivity;
-    setGamepadEnabled();
-
     gameFolder = gui.addFolder("Game settings");
-    gameFolder.add(gameSettings, "itemAmount", 10, 200).step(10).name("Obj density %");
-    gameFolder.add(gameSettings, "nightEnabled").name("Night mode").onChange(function (value) {
+
+    gameFolder.add(gameSettings, "nightEnabled").name("Night mode").onChange(function () {
         updateNightMode(false);
     }).listen();
 
@@ -607,7 +580,12 @@ function initGUI() {
         preRender();
     }).listen();
 
-    setSeason(gameSettings.season);
+    gameFolder.add(gameSettings, "itemAmount", 0, 200).step(10).name("*Obj density %");
+    gameFolder.add(gameSettings, "seed").name("*Seed");
+
+    if (gameSettings.seed !== "") {
+        Math.seedrandom(gameSettings.seed);
+    }
 
     if (isElectronApp) {
         gui.add(window, "close").name("Exit game");
@@ -617,7 +595,7 @@ function initGUI() {
 
     // exFolder.open();
     let guiContainer = document.getElementById('guiContainer');
-    guiContainer.appendChild(gui.domElement);
+    guiContainer.insertBefore(gui.domElement, guiContainer.firstChild);
 }
 
 function updateFPSLabel() {
@@ -657,18 +635,20 @@ function setSeason(season) {
 
 function updateShadows(value) {
     renderer.shadowMap.enabled = (value > 0);
-    scene.traverse(c => {
-        if (c.receiveShadow && c.material) {
-            if (c.material.length > 0) {
-                for (let mat of c.material) {
-                    mat.needsUpdate = true;
+    if (scene) {
+        scene.traverse(c => {
+            if (c.receiveShadow && c.material) {
+                if (c.material.length > 0) {
+                    for (let mat of c.material) {
+                        mat.needsUpdate = true;
+                    }
+                }
+                else {
+                    c.material.needsUpdate = true;
                 }
             }
-            else {
-                c.material.needsUpdate = true;
-            }
-        }
-    });
+        });
+    }
     switch (value) {
         case 1:
             renderer.shadowMap.type = THREE.BasicShadowMap;
@@ -692,19 +672,21 @@ function setMasterVolume() {
     }
 }
 
-function queueSceneItem(initFunc, onLoad, autostart = false) {
+function queueSceneItem(initFunc, onLoad) {
     sceneInitFuncs.push({ func: initFunc, loadFunc: obj => {
         if (onLoad) onLoad(obj);
         checkSceneInitItems();
     } });
 }
 
-
+function queueNamedSceneItem(initFunc, nameParam, onLoad) {
+    sceneInitFuncs.push({ func: initFunc, name: nameParam, loadFunc: obj => {
+        if (onLoad) onLoad(obj);
+        checkSceneInitItems();
+    } });
+}
 
 function initScene() {
-
-    showProgressBar();
-
     scene = new THREE.Scene();
     scene.background = new THREE.Color( 0x606060 );
 
@@ -733,205 +715,190 @@ function initScene() {
     }
 
     mixer = new THREE.AnimationMixer(scene);
+}
 
+function initObjects() {
+    showProgressBar();
 
-    WORLD.initPlates(function ( newModel ) {
+    queueSceneItem(WORLD.initPlates, newModel => {
         scene.add(newModel);
         newModel.updateMatrixWorld();
 
         WORLD.createPlates();
-
-        WORLD.prepareRoads();
-
-        WORLD.initRoads(checkSceneInitItems, onProgress, onError);
-
-        WORLD.initScene(function(model) {
-            WORLD.createFences();
-            WORLD.initGate(checkSceneInitItems, onProgress, onError);
-            initSky(checkSceneInitItems, onProgress, onError);
-            WORLD.populatePlants(10, gameSettings.itemAmount);
-            addPalmTree(Math.round(40 * (gameSettings.itemAmount / 100)), PTFX.generateWind(20));
-            checkSceneInitItems();
-        }, onProgress, onError);
-
-        OBJS.initCow(function(cow) {
-            cow.translateZ((WORLD.roadPlates + 0.5) * WORLD.plateSize);
-            cow.translateX(-80);
-            WORLD.model.add(cow);
-            WORLD.addCollBox(cow);
-            checkSceneInitItems();
-        }, onProgress, onError);
-
-        OBJS.initHorse(function(horse) {
-            horse.translateZ((WORLD.roadPlates + 0.5) * WORLD.plateSize);
-            horse.translateX(80);
-            WORLD.model.add(horse);
-            WORLD.addCollBox(horse);
-            checkSceneInitItems();
-        }, onProgress, onError);
-
-        initStable();
-        initAngel();
-        initStar();
-
-        addFires([WORLD.parcels[WORLD.getParcelIndex(-WORLD.plateSize / 2, (WORLD.roadPlates + 0.35) * WORLD.plateSize)],
-                  WORLD.parcels[WORLD.getParcelIndex(WORLD.plateSize * 2, 0)]]);
-
         absMaxDistance = WORLD.worldPlates * WORLD.plateSize - guyOffset;
 
-        checkSceneInitItems();
+        WORLD.prepareRoads();
+    });
 
-    }, onProgress, onError );
+    queueSceneItem(WORLD.initRoads, null);
 
-    function initStable() {
-        OBJS.initStable(function (obj) {
-            obj.position.z = (WORLD.roadPlates + 0.5) * WORLD.plateSize;
-            WORLD.model.add(obj);
-            WORLD.addCollBox(obj);
-            checkSceneInitItems();
-        }, onProgress, onError);
+    queueSceneItem(WORLD.initScene, ()=> {
+        WORLD.createFences();
+        WORLD.populatePlants(10 * (gameSettings.itemAmount / 100), 50 * (gameSettings.itemAmount / 100));
+    });
 
-        OBJS.loadModel('cradle', function (cradle) {
-            cradle.translateZ(cradleZOffset);
-            cradle.translateX(cradleXOffset);
-            WORLD.model.add(cradle);
-            WORLD.addCollBox(cradle);
-            checkSceneInitItems();
-        }, onProgress, onError);
+    queueSceneItem(WORLD.initGate, null);
 
-        OBJS.loadModel('baby', function (baby) {
-            baby.translateY(-32);
-            baby.translateX(cradleXOffset - 20);
-            baby.translateZ(cradleZOffset);
-            WORLD.model.add(baby);
+    addPalmTrees(Math.round(40 * (gameSettings.itemAmount / 100)), PTFX.generateWind(20));
 
-            baby.traverse(c => {
-                if (c.material && c.material[0]) {
-                    for (let mat of c.material) {
-                        mat.emissive = mat.color;
-                        mat.emissiveIntensity = 0.2;
-                    }
+    queueSceneItem(OBJS.initCow, cow => {
+        cow.translateZ((WORLD.roadPlates + 0.5) * WORLD.plateSize);
+        cow.translateX(-80);
+        WORLD.model.add(cow);
+        WORLD.addCollBox(cow);
+    });
+
+    queueSceneItem(OBJS.initHorse, horse => {
+        horse.translateZ((WORLD.roadPlates + 0.5) * WORLD.plateSize);
+        horse.translateX(80);
+        WORLD.model.add(horse);
+        WORLD.addCollBox(horse);
+    });
+
+    addFires([{ x: -WORLD.plateSize / 2, z:(WORLD.roadPlates + 0.35) * WORLD.plateSize },
+              { x: WORLD.plateSize * 2, z: 0 }]);
+
+
+    let multiCall = 0;
+    queueSceneItem(OBJS.initStable, obj => {
+        obj.translateZ((WORLD.roadPlates + 0.5) * WORLD.plateSize);
+        WORLD.model.add(obj);
+        WORLD.addCollBox(obj);
+        if (multiCall++ > 0) { sceneInitItems++ }; // onLoad is called multiple times here, reset the items call counter
+    });
+
+    queueNamedSceneItem(OBJS.loadModel, 'cradle', cradle => {
+        cradle.translateZ(cradleZOffset);
+        cradle.translateX(cradleXOffset);
+        WORLD.model.add(cradle);
+        WORLD.addCollBox(cradle);
+    });
+
+    queueNamedSceneItem(OBJS.loadModel, 'baby', baby => {
+        baby.translateY(-32);
+        baby.translateX(cradleXOffset - 20);
+        baby.translateZ(cradleZOffset);
+        WORLD.model.add(baby);
+
+        baby.traverse(c => {
+            if (c.material && c.material[0]) {
+                for (let mat of c.material) {
+                    mat.emissive = mat.color;
+                    mat.emissiveIntensity = 0.2;
                 }
-            });
+            }
+        });
 
-            let light = new THREE.PointLight(angelLightColor, 1.8, 200, 2);
-            light.visible = isNight;
-            light.position.y = -30;
-            light.position.x = 20;
-            light.castShadow = true;
-            baby.add(light);
-            nightLights.push(light);
+        let light = new THREE.PointLight(angelLightColor, 1.8, 200, 2);
+        light.visible = isNight;
+        light.position.y = -30;
+        light.position.x = 20;
+        light.castShadow = true;
+        baby.add(light);
+        nightLights.push(light);
+    });
 
-            checkSceneInitItems();
-        }, onProgress, onError);
+    queueNamedSceneItem(OBJS.initMinifig, 'joseph', minifig => {
+        minifig.position.z = cradleZOffset + 60;
+        minifig.position.x = cradleXOffset + 40;
+        minifig.rotateY(Math.PI / 8);
+        WORLD.model.add(minifig);
+        WORLD.addCollBox(minifig);
+    });
 
-        OBJS.initMinifig('joseph', function (minifig) {
-            minifig.position.z = cradleZOffset + 60;
-            minifig.position.x = cradleXOffset + 40;
-            minifig.rotateY(Math.PI / 8);
-            WORLD.model.add(minifig);
-            WORLD.addCollBox(minifig);
-            checkSceneInitItems();
-        }, onProgress, onError);
+    queueNamedSceneItem(OBJS.initMinifig, 'mary', minifig => {
+        minifig.position.z = cradleZOffset + 60;
+        minifig.position.x = cradleXOffset - 40;
+        minifig.rotateY(-Math.PI / 8);
+        WORLD.model.add(minifig);
+        WORLD.addCollBox(minifig);
+    });
 
-        OBJS.initMinifig('mary', function (minifig) {
-            minifig.position.z = cradleZOffset + 60;
-            minifig.position.x = cradleXOffset - 40;
-            minifig.rotateY(-Math.PI / 8);
-            WORLD.model.add(minifig);
-            WORLD.addCollBox(minifig);
-            checkSceneInitItems();
-        }, onProgress, onError);
-    }
+    queueNamedSceneItem(OBJS.initMinifig, 'angel', minifig => {
+        angel = new THREE.Group();
+        WORLD.model.add(angel);
+        angel.attach(minifig);
+        angel.translateY(-160);
 
-    function initAngel() {
-        OBJS.initMinifig('angel', function (minifig) {
-            angel = new THREE.Group();
-            WORLD.model.add(angel);
-            angel.attach(minifig);
-            angel.translateY(-160);
-
-            angel.traverse(c => {
-                if (c.material && c.material[0]) {
-                    for (let mat of c.material) {
-                        mat.emissive = mat.color;
-                        mat.emissiveIntensity = 0.2;
-                    }
+        angel.traverse(c => {
+            if (c.material && c.material[0]) {
+                for (let mat of c.material) {
+                    mat.emissive = mat.color;
+                    mat.emissiveIntensity = 0.2;
                 }
-            });
+            }
+        });
 
-            minifig.bodyParts.get(OBJS.BodyParts.LeftArm).rotateX(-Math.PI / 8);
+        minifig.bodyParts.get(OBJS.BodyParts.LeftArm).rotateX(-Math.PI / 8);
 
-            let light = new THREE.PointLight(angelLightColor, 1.5, 500, 1.8);
+        let light = new THREE.PointLight(angelLightColor, 1.5, 500, 1.8);
 
-            light.visible = isNight;
+        light.visible = isNight;
 
-            light.position.z = 50;
-            light.position.y = 90;
-            light.castShadow = true;
-            angel.add(light);
-            nightLights.push(light);
+        light.position.z = 50;
+        light.position.y = 90;
+        light.castShadow = true;
+        angel.add(light);
+        nightLights.push(light);
 
-            let action = mixer.clipAction(ANIM.createFloatAnimation('y', angel.position.y, 10, 8), angel);
-            action.setLoop(THREE.LoopRepeat).setDuration(5).play();
+        let action = mixer.clipAction(ANIM.createFloatAnimation('y', angel.position.y, 10, 8), angel);
+        action.setLoop(THREE.LoopRepeat).setDuration(5).play();
+    });
 
-            checkSceneInitItems();
-        }, onProgress, onError);
-    }
+    queueNamedSceneItem(OBJS.loadModel, 'star', obj => {
+        let mat = obj.steps[0][0].material[0];
+        mat.emissive = new THREE.Color(angelLightColor);
+        mat.emissiveIntensity = 3;
 
-    function initStar() {
-        OBJS.loadModel('star', obj => {
-            let mat = obj.steps[0][0].material[0];
-            mat.emissive = new THREE.Color(angelLightColor);
-            mat.emissiveIntensity = 3;
+        let action = mixer.clipAction(ANIM.createRotationAnimation(10, 'z'), obj);
+        action.setLoop(THREE.LoopRepeat).setDuration(10).play();
 
-            let action = mixer.clipAction(ANIM.createRotationAnimation(10, 'z'), obj);
-            action.setLoop(THREE.LoopRepeat).setDuration(10).play();
+        star = new THREE.Group();
+        star.add(obj);
 
-            star = new THREE.Group();
-            star.add(obj);
+        star.position.y = -2800;
+        star.position.z = cradleZOffset;
+        star.position.x = cradleXOffset;
 
-            star.position.y = -2800;
-            star.position.z = cradleZOffset;
-            star.position.x = cradleXOffset;
+        particleSystems.push(PTFX.starTrail(star, angelLightColor));
 
-            particleSystems.push(PTFX.starTrail(star, angelLightColor));
+        WORLD.model.add(star);
+    });
 
-            WORLD.model.add(star);
+    queueNamedSceneItem(new THREE.TextureLoader().load, './gfx/textures/sky_day.jpg', texture => {
+            var skyGeo = new THREE.SphereBufferGeometry(12 * WORLD.plateSize, 160, 160); //, 0, 2*Math.PI, 0, Math.PI/2);
+            var skyMat = new THREE.MeshLambertMaterial({ map: texture, flatShading: true, emissive: 0x5555ff, emissiveIntensity: 0.05 }); //1
 
-            checkSceneInitItems();
-        }, onProgress, onError);
-    }
+            skyMat.side = THREE.BackSide;
+            skyMesh = new THREE.Mesh(skyGeo, skyMat);
 
-    function initSky() {
-        var loader = new THREE.TextureLoader();
-        loader.load('./gfx/textures/sky_day.jpg',
-            //loader.load('./gfx/nightsky.jpg',
-            texture => {
-                var skyGeo = new THREE.SphereBufferGeometry(12 * WORLD.plateSize, 160, 160); //, 0, 2*Math.PI, 0, Math.PI/2);
-                var skyMat = new THREE.MeshLambertMaterial({ map: texture, flatShading: true, emissive: 0x5555ff, emissiveIntensity: 0.05 }); //1
+            createSky();
+            updateNightMode(false);
+    });
 
-                // var skyMat = new THREE.MeshLambertMaterial({ map: texture, shading: THREE.FlatShading, emissive: 0x00 });
-                skyMat.side = THREE.BackSide;
-                skyMesh = new THREE.Mesh(skyGeo, skyMat);
 
-                createSky();
-                updateNightMode(false);
-                checkSceneInitItems();
-            }, onProgress, onError);
-    }
+    sceneTotalItems = sceneInitFuncs.length;
+    sceneInitItems = sceneTotalItems;
+
+    checkSceneInitItems();
 }
 
 function checkSceneInitItems() {
+    // console.log (sceneInitItems + ' :' + debuginfo);
 
-    if (sceneInitFuncs.length > 0) {
-
-    }
-
-    if (--sceneInitItems <= 0) {
+    if (sceneInitItems-- <= 0) {
         hideProgressBar();
         updateBlocker(false);
-        preRender();
+        render();
+    }
+
+    if (sceneInitFuncs.length > 0) {
+        let nextAction = sceneInitFuncs.splice(0, 1)[0];
+        if (nextAction.name) {
+            nextAction.func(nextAction.name, nextAction.loadFunc, onProgress, onError);
+        } else {
+            nextAction.func(nextAction.loadFunc, onProgress, onError);
+        }
     }
 }
 
@@ -980,16 +947,16 @@ function createSky() {
     walkClock.start();
 }
 
-function addPalmTree(count, wind) {
+function addPalmTrees(count, wind) {
     let maxAngle = 1.0 * Math.PI / 180;
 
     for (let idx = 0; idx < count; idx++) {
-        let parcelIdx = Math.floor(Math.random() * (WORLD.freeParcels.length));
+        queueSceneItem(OBJS.initPalmTree, palmTree => {
+            let parcelIdx = Math.floor(Math.random() * (WORLD.freeParcels.length));
 
-        let parcel = WORLD.freeParcels[parcelIdx];
-        WORLD.freeParcels.splice(parcelIdx, 1);
+            let parcel = WORLD.freeParcels[parcelIdx];
+            WORLD.freeParcels.splice(parcelIdx, 1);
 
-        OBJS.initPalmTree(function(palmTree) {
             palmTree.position.x = parcel.x;
             palmTree.position.z = parcel.z;
 
@@ -1008,13 +975,16 @@ function addPalmTree(count, wind) {
                     xAction.time = timeOffset;
                 }
             }
-        }, onProgress, onError);
+        });
     }
 }
 
-function addFires(parcels) {
-    OBJS.loadModel("fireplace", obj => {
-        for (let p of parcels) {
+function addFires(positions) {
+    queueNamedSceneItem(OBJS.loadModel, "fireplace", obj => {
+        for (let pos of positions) {
+
+            let p = WORLD.parcels[WORLD.getParcelIndex(pos.x, pos.z)];
+
             let fire = obj.clone();
             fire.translateX(p.x);
             fire.translateZ(p.z);
@@ -1038,17 +1008,10 @@ function addFires(parcels) {
             light.visible = isNight;
             nightLights.push(light);
         }
-
-        checkSceneInitItems();
-    }, onProgress, onError);
+    });
 }
 
 
-function addParcelEffect(x, z, height, time, size) {
-    if (gameSettings.itemEffect) {
-        particleSystems.push(PTFX.parcelEffect(scene, x, -z, height, time, size));
-    }
-}
 
 
 function onProgress( xhr ) {
@@ -1121,10 +1084,11 @@ function onWindowResize(update = true) {
     // renderer.setPixelRatio(window.devicePixelRatio * scale);
     let scale = gfxSettings.quality;
 
+    /*
     if (composer) {
         composer.setSize( res.x / scale, res.y / scale, false );
     }
-
+    */
     renderer.setSize( res.x / scale, res.y / scale, false );
     renderer.domElement.style.width = renderer.domElement.width * scale + 'px';
     renderer.domElement.style.height = renderer.domElement.height * scale + 'px';
@@ -1145,23 +1109,16 @@ function onWindowResize(update = true) {
     if (update) {
         preRender();
     }
-
-    // playerInfo.innerHTML =  window.innerWidth + " x " + window.innerHeight + " (" + window.screen.width + " x " + window.screen.height + ")";
 }
 
-function onDocumentMouseMove( event ) {
-    event.preventDefault();
-    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-}
 
-function onToggleSeasonClick( event ) {
+function onToggleSeasonClick( ) {
     highlightTouchControl(touchToggleSeason);
     toggleSeason();
     resetTouchControl(touchToggleSeason);
 }
 
-function onToggleDayNightClick( event ) {
+function onToggleDayNightClick( ) {
     highlightTouchControl(touchToggleDayNight);
     toggleDayNight();
     resetTouchControl(touchToggleDayNight);
@@ -1204,98 +1161,6 @@ function animate() {
     }
 }
 
-function addAnimal() {
-
-    let parcels = [];
-    let counter = 0;
-    do {
-        parcels = [];
-        // find empty parcel
-        let parcelIdx = Math.floor(Math.random() * (WORLD.freeParcels.length));
-        let freeParcel = WORLD.freeParcels[parcelIdx];
-
-        parcels.push(freeParcel);
-
-        let parcel = WORLD.parcels[WORLD.getParcelIndex(freeParcel.x, freeParcel.z + WORLD.parcelSize)];
-        if (!parcel.occupied) {
-            parcels.push(parcel);
-
-            parcel = WORLD.parcels[WORLD.getParcelIndex(freeParcel.x + WORLD.parcelSize, freeParcel.z)];
-            if (!parcel.occupied) {
-                parcels.push(parcel);
-
-                parcel = WORLD.parcels[WORLD.getParcelIndex(freeParcel.x + WORLD.parcelSize, freeParcel.z + WORLD.parcelSize)];
-                if (!parcel.occupied) {
-                    parcels.push(parcel);
-                }
-            }
-        }
-    } while (parcels.length < 4 && counter++ < 25); // max tries
-
-    if (parcels.length == 4) {
-
-        let x = 0;
-        let z = 0;
-
-        for (let parcel of parcels) {
-            WORLD.freeParcels.splice(WORLD.freeParcels.indexOf(parcel), 1);
-            // parcel.occupied = true;
-            parcel.mapObjId = WORLD.MapObjectId.animal;
-            x += parcel.x;
-            z += parcel.z;
-        }
-
-        x = x/4;
-        z = z/4;
-
-        if (Math.random() < 0.6) {
-            OBJS.initCow(function (cow) {
-
-                WORLD.model.add(cow);
-                for (let parcel of parcels) {
-                    parcel.occupied = cow;
-                }
-
-                cow.position.x = x;
-                cow.position.z = z;
-
-                cow.rotateY(Math.floor(Math.random() * 4) * Math.PI / 2);
-
-                var action = mixer.clipAction(ANIM.createHeadAnimation( 1, Math.PI/4, 'x'), cow.head);
-                action.setLoop(THREE.LoopRepeat).setDuration(5).play();
-
-                SFX.addItemSound(cow, SFX.soundBuffers.cow, true);
-
-                WORLD.addCollBox(cow);
-
-            }, onProgress, onError);
-        } else {
-            OBJS.initHorse(function (horse) {
-
-                WORLD.model.add(horse);
-
-                for (let parcel of parcels) {
-                    parcel.occupied = horse;
-                }
-
-                horse.position.x = x;
-                horse.position.z = z;
-
-                horse.rotateY(Math.floor(Math.random() * 4) * Math.PI / 2);
-
-                var action = mixer.clipAction(ANIM.createHeadAnimation( 1, Math.PI/2, 'x'), horse.head);
-                action.setLoop(THREE.LoopRepeat).setDuration(5).play();
-
-                action = mixer.clipAction(ANIM.createHeadAnimation( 1, -Math.PI * 0.4, 'x'), horse.body);
-                action.setLoop(THREE.LoopOnce).setDuration(8).play();
-
-                SFX.addItemSound(horse, SFX.soundBuffers.horse, true);
-
-                WORLD.addCollBox(horse);
-            }, onProgress, onError);
-        }
-    }
-}
 
 function updateControls(delta) {
 
@@ -1530,33 +1395,7 @@ function openFullscreen() {
 }
 
 /* Close fullscreen */
-function closeFullscreen() {
-    console.log("Closing FS");
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    } else if (document.mozCancelFullScreen) { /* Firefox */
-      document.mozCancelFullScreen();
-    } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
-      document.webkitExitFullscreen();
-    } else if (document.msExitFullscreen) { /* IE/Edge */
-      document.msExitFullscreen();
-    }
-}
 
-function toggleFullScreen() {
-    var doc = window.document;
-    var docEl = doc.body;
-
-    var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
-    var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
-
-    if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
-      requestFullScreen.call(docEl);
-    }
-    else {
-      cancelFullScreen.call(doc);
-    }
-}
 
 function initBlockerAnim() {
     // set the candles and ornaments according to advent date
@@ -1564,17 +1403,37 @@ function initBlockerAnim() {
     let date = new Date(now.getFullYear(), 11, 24, 0, 0, 0, 0); // month is 0 based!
     let deltaDays = (now - date) / (1000 * 3600 * 24.0);
 
-    OBJS.loadModel('wreath', obj => {
-        rightRenderer = new THREE.WebGLRenderer( { antialias: gfxSettings.antiAlias, alpha: true } );
-        if (!isTouch) {
-            rightRenderer.setPixelRatio( window.devicePixelRatio );
-        }
-        rightRenderer.shadowMap.enabled = false;
+    rightRenderer = new THREE.WebGLRenderer( { antialias: gfxSettings.antiAlias, alpha: true } );
+    if (!isTouch) {
+        rightRenderer.setPixelRatio( window.devicePixelRatio );
+    }
+    rightRenderer.shadowMap.enabled = false;
 
-        rightRenderer.domElement.setAttribute('style', "position: absolute; top: 0px; left: 0px; right: 0px; bottom: 0px; margin: auto");
-        rightCanvas.appendChild(rightRenderer.domElement);
-        rightScene = new THREE.Scene();
+    rightRenderer.domElement.setAttribute('style', "position: absolute; top: 0px; left: 0px; right: 0px; bottom: 0px; margin: auto");
+    rightCanvas.appendChild(rightRenderer.domElement);
+    rightScene = new THREE.Scene();
 
+    rightCam = new THREE.PerspectiveCamera( 30, rightCanvas.clientWidth / rightCanvas.clientHeight, 1, 1000 );
+    rightCam.up = new THREE.Vector3(0, 1, 0);
+    rightCam.position.set(0, 100, 400);
+    rightCam.lookAt(0, 40, 0);
+
+    leftRenderer = new THREE.WebGLRenderer( { antialias: gfxSettings.antiAlias, alpha: true } );
+    if (!isTouch) {
+        leftRenderer.setPixelRatio( window.devicePixelRatio );
+    }
+    leftRenderer.shadowMap.enabled = false;
+
+    leftRenderer.domElement.setAttribute('style', "position: absolute; top: 0px; left: 0px; right: 0px; bottom: 0px; margin: auto");
+    leftCanvas.appendChild(leftRenderer.domElement);
+    leftScene = new THREE.Scene();
+
+    leftCam = new THREE.PerspectiveCamera( 30, leftCanvas.clientWidth / leftCanvas.clientHeight, 1, 1600 );
+    leftCam.up = new THREE.Vector3(0, 1, 0);
+    leftCam.position.set(0, 150, 400);
+    leftCam.lookAt(0, 90, 0);
+
+    queueNamedSceneItem(OBJS.loadModel, 'wreath', obj => {
         obj.rotateX(-Math.PI);
 
         for (let mesh of obj.steps[1]) {
@@ -1596,32 +1455,12 @@ function initBlockerAnim() {
 
         rightScene.add(new THREE.DirectionalLight(0xffffff, 1).translateX(100).translateY(100).translateZ(100));
         rightScene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 0.6));
+    });
 
-        rightCam = new THREE.PerspectiveCamera( 30, rightCanvas.clientWidth / rightCanvas.clientHeight, 1, 1000 );
-
-        rightCam.up = new THREE.Vector3(0, 1, 0);
-        rightCam.position.set(0, 100, 400);
-        rightCam.lookAt(0, 40, 0);
-
-        checkSceneInitItems();
-
-    }, onProgress, onError);
-
-    OBJS.loadModel('xtree', obj => {
-        leftRenderer = new THREE.WebGLRenderer( { antialias: gfxSettings.antiAlias, alpha: true } );
-        if (!isTouch) {
-            leftRenderer.setPixelRatio( window.devicePixelRatio );
-        }
-        leftRenderer.shadowMap.enabled = false;
-
-        leftRenderer.domElement.setAttribute('style', "position: absolute; top: 0px; left: 0px; right: 0px; bottom: 0px; margin: auto");
-        leftCanvas.appendChild(leftRenderer.domElement);
-        leftScene = new THREE.Scene();
-
+    queueNamedSceneItem(OBJS.loadModel, 'xtree', obj => {
         obj.rotateX(-Math.PI);
         leftScene.add(obj);
 
-        console.log(deltaDays);
         if (deltaDays < 0 && deltaDays > -352) {
             for (let stepIdx = 1; stepIdx <= 2; stepIdx++) {
                 for (let item of obj.steps[stepIdx]) {
@@ -1632,16 +1471,7 @@ function initBlockerAnim() {
 
         leftScene.add(new THREE.DirectionalLight(0xffffff, 1).translateX(100).translateY(100).translateZ(100));
         leftScene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 0.6));
-
-        leftCam = new THREE.PerspectiveCamera( 30, leftCanvas.clientWidth / leftCanvas.clientHeight, 1, 1600 );
-
-        leftCam.up = new THREE.Vector3(0, 1, 0);
-        leftCam.position.set(0, 150, 400);
-        leftCam.lookAt(0, 90, 0);
-
-        checkSceneInitItems();
-
-    }, onProgress, onError);
+    });
 }
 
 function resizeBlockerRenderer() {
