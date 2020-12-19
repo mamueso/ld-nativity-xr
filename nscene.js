@@ -97,7 +97,6 @@ var touchMoveTime;
 var touchCameraControls = document.getElementById('cameraControls');
 var touchCamPos = new THREE.Vector2();
 
-
 const playerCamHeight = 85;
 
 const cradleXOffset = 80, cradleZOffset = (WORLD.roadPlates * WORLD.plateSize) + 140;
@@ -703,7 +702,7 @@ function initScene() {
 function initObjects() {
 
     let herdX = WORLD.plateSize * 1.5;
-    let herdZ = -WORLD.plateSize * 2;
+    let herdZ = -WORLD.plateSize * 1;
 
     queueSceneItem(WORLD.initPlates, newModel => {
         scene.add(newModel);
@@ -765,19 +764,12 @@ function initObjects() {
 
     addPalmTrees(Math.round(20 * (gameSettings.itemAmount / 100)), PTFX.generateWind(20));
 
-    queueSceneItem(OBJS.initCow, cow => {
-        cow.translateZ((WORLD.roadPlates + 0.5) * WORLD.plateSize);
-        cow.translateX(-80);
-        WORLD.model.add(cow);
-        WORLD.addCollBox(cow);
-    });
-
-    queueSceneItem(OBJS.initHorse, horse => {
-        horse.translateZ((WORLD.roadPlates + 0.5) * WORLD.plateSize);
-        horse.translateX(80);
-        WORLD.model.add(horse);
-        WORLD.addCollBox(horse);
-    });
+    for (let idx = 0; idx <= 2; idx++) {
+        queueCow(-80 * idx);
+    }
+    for (let idx = 1; idx <= 2; idx++) {
+        queueHorse(80 * idx);
+    }
 
     addFires([{ x: -WORLD.plateSize / 2, z: (WORLD.roadPlates + 0.35) * WORLD.plateSize },
               { x: herdX, z: herdZ }]);
@@ -912,6 +904,31 @@ function initObjects() {
 
         WORLD.model.add(star);
     });
+
+    function queueHorse(offset) {
+        queueSceneItem(OBJS.initHorse, horse => {
+            horse.translateZ((WORLD.roadPlates + 0.5) * WORLD.plateSize);
+            horse.translateX(offset);
+            WORLD.model.add(horse);
+            WORLD.addCollBox(horse);
+
+            let action = mixer.clipAction(ANIM.createHeadAnimation(10, Math.PI / 6, "x"), horse.head);
+            action.setLoop(THREE.LoopRepeat).setDuration(10).startAt(Math.random() * 10).play();
+        });
+    }
+
+    function queueCow(offset) {
+        queueSceneItem(OBJS.initCow, cow => {
+            cow.translateZ((WORLD.roadPlates + 0.5) * WORLD.plateSize);
+            cow.translateX(offset);
+
+            WORLD.model.add(cow);
+            WORLD.addCollBox(cow);
+
+            let action = mixer.clipAction(ANIM.createHeadAnimation(10, Math.PI / 6, "x"), cow.head);
+            action.setLoop(THREE.LoopRepeat).setDuration(10).startAt(Math.random() * 10).play();
+        });
+    }
 }
 
 function processSceneInitItems(debuginfo) {
