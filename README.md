@@ -14,11 +14,11 @@ A nativity scene minigame using three.js and the LDraw™-Library...
 
 The minigame should run on all modern PCs or laptops, however a dedicated graphics card is recommended.
 
-Mobile devices are not supported yet.
-
 Online version tested with Chromium and Firefox, but you can try others with WebGL support too.
 
 Gamepad support tested with Chrome(-ium).
+
+Mobile devices are somewhat supported, Chrome for Android and Safari tested, keep the graphics settings low.
 
 ---
 
