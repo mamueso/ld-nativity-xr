@@ -35,12 +35,13 @@
 				}
 
 			kbd {
-				font-size: 75%;
-				border-radius: 3px;
-				box-shadow: 0.5px 0.5px 2px lightcyan;
-				border: 1px solid yellowgreen;
+				font-size: 2vh;
+				border-radius: 0.5vh;
+				box-shadow: 0.1vh 0.1vh 0.2vh lightcyan;
+				border: 0.25vh solid yellowgreen;
 				display: inline-block;
-				padding: 1px 10px;
+				padding: 0.1vh 1.2vw;
+				margin-top: 1vh;
 			}
 
 			#fpsLabel {
@@ -53,7 +54,7 @@
 				display:block;
 				text-align: left;
 				font-family: Arial, Helvetica, sans-serif;
-				font-size: 24px;
+				font-size: 3.5vh;
 			}
 
 			#blocker {
@@ -67,11 +68,11 @@
 
 			#instructions span {
 					display: inline-block;
-					line-height: 1.8;
+					line-height: 3.5vh;
 				}
 
 			#instructions small {
-				font-size: 67%;
+				font-size: 1.5vh;
 				}
 
 			#instructions {
@@ -99,11 +100,31 @@
 				color: #ffffff;
 				text-align: center;
 				font-family: Arial, Helvetica, sans-serif;
-				font-size: 18px;
-				line-height: 22px;
+				font-size: 2.5vh;
+				line-height: 2.8vh;
 
 				cursor: pointer;
 				z-index: 200;
+			}
+
+			#touchPause {
+				display: none;
+				position: absolute;
+
+				width: 5vw;
+				height: 5vw;
+
+				top: 1%;
+				right: 2%;
+
+				font-size: 5vw;
+
+				text-shadow: 0 0 1px cyan, 0 0 5px darkcyan;
+				color: #ffffff;
+				text-align: center;
+				font-family: Arial, Helvetica, sans-serif;
+
+				z-index: 250;
 			}
 
 			#touchControls {
@@ -142,9 +163,6 @@
 				-webkit-box-pack: center;
 				-moz-box-pack: center;
 				box-pack: center;
-
-				font-size: 5vw;
-				line-height: 5vw;
 			}
 
 			#touchControls kbd {
@@ -155,6 +173,9 @@
 				padding: 1vw;
 
 				text-align: center;
+
+				font-size: 5vw;
+				line-height: 5vw;
 
 				box-shadow: -0.5px 0.5px 4px rgba(0,0,0,0.75);
 				border: 2px solid rgba(128,128,128,0.8);
@@ -191,14 +212,14 @@
 				-webkit-box-pack: center;
 				-moz-box-pack: center;
 				box-pack: center;
-
-				font-size: 3.5vw;
-				line-height: 3.5vw;
 			}
 
 			#miscControls kbd {
 				height: 4vw;
 				width: 8vw;
+
+				font-size: 3vw;
+				line-height: 4vw;
 			}
 
 			#cameraControls {
@@ -275,15 +296,16 @@
 
 	<body>
 		<div id="fpsLabel">- FPS</div>
+		<div id="touchPause">&#8285;</div>
 		<div id="blocker">
 			<div id="leftCanvas"></div>
 			<div id="rightCanvas"></div>
 			<div id="instructions">
-				<span style="font-size:24px; color: lime">A virtual nativity scene...</span>
+				<span style="font-size:3vh; color: lime">A virtual nativity scene...</span>
 				<br/>
-				<span style="color: lime; font-family:monospace">v. 0.1.6</span>
+				<span style="color: lime; font-family:monospace; font-size:2vh">v. 0.1.8</span>
 				<br/><br/>
-				<span id="clickSpan" style="font-size:32px">&#9658; Click to explore</span>
+				<span id="clickSpan" style="font-size:4vh">&#9658; Click to explore</span>
 				<br/><br/>
 				Move:&nbsp;<span><kbd>W</kbd><br/><kbd>A</kbd>&nbsp;<kbd>S</kbd>&nbsp;<kbd>D</kbd></span>
 				&nbsp;or&nbsp;
@@ -299,12 +321,12 @@
 				<br/>
 				Toggle fullscreen:&nbsp;<kbd>F11</kbd>&nbsp;<small><i>(in most browsers)</i></small>
 				<br/><br/>
-				<a href="https://goeroeg.github.io/ld-nativity/" target="_blank">&#9432; <i>More info and licenses</i></a>
+				<a id="infoLink" href="https://goeroeg.github.io/ld-nativity/" target="_blank">&#9432; <i>More info and licenses</i></a>
 			</div>
 			<div id="guiContainer">
-				<div style="color: lightgrey; font-family:monospace; font-size: x-small;">
+				<div id="reloadHint" style="color: lightgrey; font-family:monospace; font-size: x-small;">
 					<br/><br/>
-					params with * require reload to take effect
+					params with * require reloading
 				</div>
 			</div>
 		</div>

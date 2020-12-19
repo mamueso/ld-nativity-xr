@@ -253,6 +253,7 @@ export function initMinifig(name, onLoad, onProgress, onError) {
             }
         }
 
+
         minifig.bodyParts.get(BodyParts.RightArm).attach(minifig.bodyParts.get(BodyParts.RightHand));
         if (minifig.bodyParts.has(BodyParts.RightItem)) {
             minifig.bodyParts.get(BodyParts.RightHand).attach(minifig.bodyParts.get(BodyParts.RightItem));
@@ -263,7 +264,7 @@ export function initMinifig(name, onLoad, onProgress, onError) {
             minifig.bodyParts.get(BodyParts.LeftHand).attach(minifig.bodyParts.get(BodyParts.LeftItem));
         }
 
-        //console.log(minifig);
+        // console.log(minifig);
 
         if (onLoad) onLoad(minifig);
     }, onProgress, onError);

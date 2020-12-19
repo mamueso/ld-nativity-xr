@@ -82,12 +82,16 @@ export function initPlates(onLoad, onProgress, onError) {
         // clear model, keep only first plate
         while(model.children.length > 1) model.remove(model.children[1]);
 
-        freeParcels = parcels.filter(parcelFilter);
+        updateFreeParcels();
 
         setSeasonColor(currentSeason);
 
         if (onLoad) onLoad(model);
     }, onProgress, onError, true);
+}
+
+export function updateFreeParcels() {
+    freeParcels = parcels.filter(parcelFilter);
 }
 
 export function initScene(onLoad, onProgress, onError) {

@@ -1,9 +1,7 @@
 import './web_modules/three/build/three.min.js';
 import './web_modules/seedrandom/seedrandom.min.js';
 
-// import { GUI } from './node_modules/three/examples/jsm/libs/dat.gui.module.js';
 import { GUI } from './web_modules/three/examples/jsm/libs/dat.gui.module.js';
-// import { MapControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
 import { PointerLockControls } from './web_modules/three/examples/jsm/controls/PointerLockControls.js';
 
 //import { EffectComposer } from './web_modules/three/examples/jsm/postprocessing/EffectComposer.js';
@@ -69,7 +67,7 @@ var progressBarDiv;
 
 var isTouch = ('ontouchstart' in window);
 
-var resolutions = [{ x: 0, y: 0 }, { x: 320, y: 240 }, {x: 640, y: 480 }, { x: 1024, y: 768 }, { x: 1280, y: 800 }, { x: 1920, y: 1080 }]
+var resolutions = [{ x: 0, y: 0 }, { x: 320, y: 240 }, {x: 640, y: 480 }, { x: 1024, y: 768 }, { x: 1280, y: 800 }, { x: 1920, y: 1080 }];
 var resolutionNames  = { 'Auto': 0, '320x240': 1, '640x480': 2, '1024x768': 3, "1280x800": 4, "1920x1080": 5 };
 var qualityNames = { High: 1, Low : 2};
 var audioSettings = { enabled : true, volume: 100 };
@@ -86,6 +84,7 @@ var leftCanvas = document.getElementById( 'leftCanvas' );
 
 var fpsLabel = document.getElementById('fpsLabel');
 
+var touchPause = document.getElementById('touchPause');
 var touchMoveForward = document.getElementById('touchForward');
 var touchMoveBack = document.getElementById('touchBack');
 var touchMoveLeft = document.getElementById('touchLeft');
@@ -123,8 +122,15 @@ function init() {
     initControls();
     SFX.init(camera);
     applyInitialSettings();
+
+    showProgressBar();
+
     initBlockerAnim();
     initObjects();
+
+    sceneTotalItems = sceneInitFuncs.length;
+    sceneInitItems = sceneTotalItems;
+    processSceneInitItems('start');
 }
 
 function applyInitialSettings() {
@@ -150,7 +156,6 @@ function initControls() {
 
     renderer.domElement.setAttribute('style', "position: absolute; top: 0px; left: 0px; right: 0px; bottom: 0px; margin: auto");
     document.body.insertBefore( renderer.domElement, document.getElementById( 'blocker' ));
-
     // document.body.appendChild(renderer.domElement);
 
     camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 12000 );
@@ -183,43 +188,38 @@ function initControls() {
 
     scene.add( controls.getObject() );
 
-    if (isTouch) {
-        instructions.addEventListener( 'touchstart', function () {
-            openFullscreen();
-            window.history.pushState({}, '');
-            startGame();
-        }, false );
+    document.getElementById('infoLink').addEventListener('click', e => {
+        e.stopPropagation();
+    });
 
-        /*
-        document.getElementById('clickSpan').addEventListener( 'click', function () {
+    if (isTouch) {
+        instructions.addEventListener('click', function (e) {
+            openFullscreen();
+            window.history.pushState({}, 'pause');
             startGame();
-        }, false );
-        */
+        }, false);
 
         window.addEventListener('popstate', function() {
             pauseGame();
         });
 
     } else {
-        instructions.addEventListener( 'click', function () {
+        instructions.addEventListener('click', function () {
             controls.lock();
-        }, false );
+        }, false);
 
-        controls.addEventListener( 'lock', function () {
+        controls.addEventListener('lock', function () {
             startGame();
-        } );
+        });
 
-        controls.addEventListener( 'unlock', function () {
+        controls.addEventListener('unlock', function () {
             pauseGame();
-        } );
+        });
     }
 
     var onKeyDown = function ( event ) {
-
         //console.log("down " + event.keyCode);
-
         switch ( event.keyCode ) {
-
             case 38: // up
             case 87: // w
                 toggleMove(true, moveDir.forward, touchMoveForward);
@@ -259,15 +259,11 @@ function initControls() {
                 toggleDayNight();
             break;
         }
-
     };
 
     var onKeyUp = function ( event ) {
-
         //console.log("up " + event.keyCode);
-
         switch ( event.keyCode ) {
-
             case 27: //ESC
                 if (controls.isLocked) {
                     controls.unlock();
@@ -298,24 +294,10 @@ function initControls() {
         }
     };
 
-    document.addEventListener( 'keydown', onKeyDown, false );
-    document.addEventListener( 'keyup', onKeyUp, false );
+    document.addEventListener('keydown', onKeyDown, false);
+    document.addEventListener('keyup', onKeyUp, false);
 
-    /*
-    // controls
-    controls = new MapControls( camera, renderer.domElement );
-    //controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
-    controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
-    controls.dampingFactor = 0.05;
-    controls.screenSpacePanning = false;
-    controls.minDistance = 100;
-    controls.maxDistance = 2500;
-    controls.maxPolarAngle = Math.PI / 2;
-
-    */
-    //
-    window.addEventListener( 'resize', onWindowResize, false );
-    // document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+    window.addEventListener('resize', onWindowResize, false);
 }
 
 function toggleDayNight() {
@@ -332,7 +314,6 @@ function toggleSeason() {
     setSeason(gameSettings.season);
 }
 
-
 function jump() {
     if (canJump === true)
         velocity.y += jumpInitialVel;
@@ -342,6 +323,9 @@ function jump() {
 function initTouchControls(hide) {
     if (hide) {
         document.getElementById('touchControls').style.display = 'none';
+
+        touchPause.style.display = 'none';
+        touchPause.removeEventListener("click", onTouchPauseClick);
 
         touchCameraControls.removeEventListener("touchstart", onCamControlsTouch);
         touchCameraControls.removeEventListener("touchmove", onCamControlsTouchMove);
@@ -361,11 +345,13 @@ function initTouchControls(hide) {
 
         touchToggleSeason.removeEventListener("click", onToggleSeasonClick);
         touchToggleDayNight.removeEventListener("click", onToggleDayNightClick);
-
     } else {
         document.getElementById('touchControls').style.display = '-webkit-box';
         document.getElementById('touchControls').style.display = '-moz-box';
         document.getElementById('touchControls').style.display = 'box';
+
+        touchPause.style.display = 'block';
+        touchPause.addEventListener("click", onTouchPauseClick);
 
         touchCameraControls.addEventListener("touchstart", onCamControlsTouch, false);
         touchCameraControls.addEventListener("touchmove", onCamControlsTouchMove, false);
@@ -391,6 +377,14 @@ function initTouchControls(hide) {
         touchToggleSeason.addEventListener("click", onToggleSeasonClick, false);
         touchToggleDayNight.addEventListener("click", onToggleDayNightClick, false);
     }
+}
+
+function onTouchPauseClick(e) {
+    e.preventDefault();
+    highlightTouchControl(touchPause);
+    window.history.back();
+    // pauseGame();
+    resetTouchControl(touchPause);
 }
 
 function onCamControlsTouchMove(e) {
@@ -505,6 +499,7 @@ function updateBlocker(hide) {
 
 function initGUI() {
     gui = new GUI( { autoPlace: false } );
+
     gui.useLocalStorage = true;
     gui.remember(gfxSettings);
     gui.remember(audioSettings);
@@ -593,9 +588,13 @@ function initGUI() {
 
     gui.close();
 
-    // exFolder.open();
     let guiContainer = document.getElementById('guiContainer');
     guiContainer.insertBefore(gui.domElement, guiContainer.firstChild);
+    document.getElementById('reloadHint').style.display = 'none';
+
+    guiContainer.addEventListener('click', e => {
+        document.getElementById('reloadHint').style.display = gui.closed ? 'none' : '';
+    });
 }
 
 function updateFPSLabel() {
@@ -634,7 +633,25 @@ function setSeason(season) {
 }
 
 function updateShadows(value) {
-    renderer.shadowMap.enabled = (value > 0);
+    if (renderer) {
+        renderer.shadowMap.enabled = (value > 0);
+        switch (value) {
+            case 1:
+                renderer.shadowMap.type = THREE.BasicShadowMap;
+                break;
+            case 2:
+                renderer.shadowMap.type = THREE.PCFShadowMap;
+                break;
+            case 3:
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                break;
+            //case 4 :
+            //    renderer.shadowMap.type = THREE.VSMShadowMap;
+            //    break;
+        }
+        renderer.shadowMap.needsUpdate = true;
+    }
+
     if (scene) {
         scene.traverse(c => {
             if (c.receiveShadow && c.material) {
@@ -649,21 +666,6 @@ function updateShadows(value) {
             }
         });
     }
-    switch (value) {
-        case 1:
-            renderer.shadowMap.type = THREE.BasicShadowMap;
-            break;
-        case 2:
-            renderer.shadowMap.type = THREE.PCFShadowMap;
-            break;
-        case 3:
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            break;
-        //case 4 :
-        //    renderer.shadowMap.type = THREE.VSMShadowMap;
-        //    break;
-    }
-    renderer.shadowMap.needsUpdate = true;
 }
 
 function setMasterVolume() {
@@ -675,50 +677,33 @@ function setMasterVolume() {
 function queueSceneItem(initFunc, onLoad) {
     sceneInitFuncs.push({ func: initFunc, loadFunc: obj => {
         if (onLoad) onLoad(obj);
-        checkSceneInitItems();
+        processSceneInitItems(initFunc.name + '()');
     } });
 }
 
 function queueNamedSceneItem(initFunc, nameParam, onLoad) {
     sceneInitFuncs.push({ func: initFunc, name: nameParam, loadFunc: obj => {
         if (onLoad) onLoad(obj);
-        checkSceneInitItems();
+        processSceneInitItems(initFunc.name + '("'+ nameParam + '")');
     } });
 }
 
 function initScene() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color( 0x606060 );
+    scene.background = new THREE.Color(0x000000);
 
-    scene.fog =  new THREE.FogExp2( 0xcccccc, 0.00025);// new THREE.Fog(0xcccccc, 2000, 12000);// .FogExp2( 0xcccccc, 0.0003);
+    scene.fog =  new THREE.FogExp2(0xcccccc, 0.00025);// new THREE.Fog(0xcccccc, 2000, 12000);// .FogExp2( 0xcccccc, 0.0003);
 
-    // world
-    //var geometry = new THREE.PlaneGeometry( 200, 200 );
-    //geometry.rotateX(Math.PI / 2);
-
-    const skyColor = 0xB1E1FF;  // light blue
-    const groundColor = 0xB97A20;  // brownish orange
-    hemiLight = new THREE.HemisphereLight(skyColor, groundColor, hemiLightIntensity);
+    hemiLight = new THREE.HemisphereLight(0xffffff, 0x000000, hemiLightIntensity);
     scene.add(hemiLight);
-
-    /*
-    var light = new THREE.DirectionalLight(0x002288);
-    light.position.set(-1, -1, -1);
-    scene.add(light);
-    */
-
-    //var light = new THREE.AmbientLight(0x222222);
-    //scene.add(light);
-
-    if (WORLD.model) {
-        scene.remove(WORLD.model);
-    }
 
     mixer = new THREE.AnimationMixer(scene);
 }
 
 function initObjects() {
-    showProgressBar();
+
+    let herdX = WORLD.plateSize * 1.5;
+    let herdZ = -WORLD.plateSize * 2;
 
     queueSceneItem(WORLD.initPlates, newModel => {
         scene.add(newModel);
@@ -732,14 +717,53 @@ function initObjects() {
 
     queueSceneItem(WORLD.initRoads, null);
 
+    queueNamedSceneItem(OBJS.loadModel, 'sheep', obj => {
+        for (let x = herdX - WORLD.plateSize/2; x <= herdX + WORLD.plateSize/2; x+= WORLD.parcelSize) {
+            for (let z = herdZ - WORLD.plateSize/2; z <= herdZ + WORLD.plateSize/2; z+= WORLD.parcelSize) {
+                WORLD.reserveParcelAt(x, z, mixer, WORLD.fencePlaceholder);
+            }
+        }
+        for (let idx = 0; idx < 20 * (gameSettings.itemAmount /100); idx++) {
+            let sheep = obj.clone();
+
+            let radius = WORLD.plateSize / 2 + (Math.floor(idx / 12 - 1) * WORLD.parcelSize);// + WORLD.studSize;
+
+            let x = herdX + Math.round((Math.sin(idx / 2) * radius) / 20) * 20;
+            let z = herdZ + Math.round((Math.cos(idx / 2) * radius) / 20) * 20;
+
+            let angle = Math.round(idx / Math.PI) * Math.PI/2;
+
+            sheep.translateX(x);
+            sheep.translateZ(z);
+
+            sheep.rotateY(angle);
+            WORLD.model.add(sheep);
+            WORLD.addCollBox(sheep);
+
+            WORLD.parcels[WORLD.getParcelIndex(x, z)].occupied = sheep;
+        }
+        WORLD.updateFreeParcels();
+    });
+
     queueSceneItem(WORLD.initScene, ()=> {
         WORLD.createFences();
-        WORLD.populatePlants(10 * (gameSettings.itemAmount / 100), 50 * (gameSettings.itemAmount / 100));
+        WORLD.populatePlants(25 * (gameSettings.itemAmount / 100), 50 * (gameSettings.itemAmount / 100));
+    });
+
+    queueNamedSceneItem(new THREE.TextureLoader().load, './gfx/textures/sky_day.jpg', texture => {
+        var skyGeo = new THREE.SphereBufferGeometry(12 * WORLD.plateSize, 160, 160); // , 0, 2*Math.PI, 0, Math.PI * 0.6);
+        var skyMat = new THREE.MeshLambertMaterial({ map: texture, flatShading: true, emissive: 0x5555ff, emissiveIntensity: 0.05 }); //1
+
+        skyMat.side = THREE.BackSide;
+        skyMesh = new THREE.Mesh(skyGeo, skyMat);
+
+        createSky();
+        updateNightMode(false);
     });
 
     queueSceneItem(WORLD.initGate, null);
 
-    addPalmTrees(Math.round(40 * (gameSettings.itemAmount / 100)), PTFX.generateWind(20));
+    addPalmTrees(Math.round(20 * (gameSettings.itemAmount / 100)), PTFX.generateWind(20));
 
     queueSceneItem(OBJS.initCow, cow => {
         cow.translateZ((WORLD.roadPlates + 0.5) * WORLD.plateSize);
@@ -755,16 +779,40 @@ function initObjects() {
         WORLD.addCollBox(horse);
     });
 
-    addFires([{ x: -WORLD.plateSize / 2, z:(WORLD.roadPlates + 0.35) * WORLD.plateSize },
-              { x: WORLD.plateSize * 2, z: 0 }]);
+    addFires([{ x: -WORLD.plateSize / 2, z: (WORLD.roadPlates + 0.35) * WORLD.plateSize },
+              { x: herdX, z: herdZ }]);
 
+    queueNamedSceneItem(OBJS.initMinifig, 'shepherd', minifig => {
+        minifig.translateZ(herdZ);
+        minifig.translateX(herdX + 6 * WORLD.studSize);
 
-    let multiCall = 0;
+        minifig.rotateY(Math.PI/2);
+
+        WORLD.model.add(minifig);
+        WORLD.addCollBox(minifig);
+    });
+
+    queueNamedSceneItem(OBJS.initMinifig, 'shepherd_kid', minifig => {
+        minifig.translateZ(herdZ - 5 * WORLD.studSize);
+        minifig.translateX(herdX);
+
+        minifig.rotateY(Math.PI);
+
+        WORLD.model.add(minifig);
+        WORLD.addCollBox(minifig);
+
+        let leftArm = minifig.bodyParts.get(OBJS.BodyParts.LeftArm)
+        let action = mixer.clipAction(ANIM.createWalkAnimation(1, Math.PI/20, 'x'), leftArm);
+        action.setLoop(THREE.LoopRepeat).setDuration(5).play();
+    });
+
+    let multiCall = false;
     queueSceneItem(OBJS.initStable, obj => {
         obj.translateZ((WORLD.roadPlates + 0.5) * WORLD.plateSize);
         WORLD.model.add(obj);
         WORLD.addCollBox(obj);
-        if (multiCall++ > 0) { sceneInitItems++ }; // onLoad is called multiple times here, reset the items call counter
+        if (multiCall) { sceneInitItems++ }; // onLoad is called multiple times here, reset the items call plateCounter
+        multiCall = true;
     });
 
     queueNamedSceneItem(OBJS.loadModel, 'cradle', cradle => {
@@ -864,27 +912,10 @@ function initObjects() {
 
         WORLD.model.add(star);
     });
-
-    queueNamedSceneItem(new THREE.TextureLoader().load, './gfx/textures/sky_day.jpg', texture => {
-            var skyGeo = new THREE.SphereBufferGeometry(12 * WORLD.plateSize, 160, 160); //, 0, 2*Math.PI, 0, Math.PI/2);
-            var skyMat = new THREE.MeshLambertMaterial({ map: texture, flatShading: true, emissive: 0x5555ff, emissiveIntensity: 0.05 }); //1
-
-            skyMat.side = THREE.BackSide;
-            skyMesh = new THREE.Mesh(skyGeo, skyMat);
-
-            createSky();
-            updateNightMode(false);
-    });
-
-
-    sceneTotalItems = sceneInitFuncs.length;
-    sceneInitItems = sceneTotalItems;
-
-    checkSceneInitItems();
 }
 
-function checkSceneInitItems() {
-    // console.log (sceneInitItems + ' :' + debuginfo);
+function processSceneInitItems(debuginfo) {
+    // console.log ('sceneInitItems: ' + sceneInitItems + ' - ' + debuginfo);
 
     if (sceneInitItems-- <= 0) {
         hideProgressBar();
@@ -1393,6 +1424,11 @@ function openFullscreen() {
         document.body.msRequestFullscreen();
     }
 }
+
+function isFullScreen() {
+    var doc = window.document;
+    return (doc.fullscreenElement || doc.mozFullScreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement);
+  }
 
 /* Close fullscreen */
 
