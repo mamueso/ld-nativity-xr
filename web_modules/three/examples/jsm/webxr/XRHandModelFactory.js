@@ -1,6 +1,6 @@
 import {
 	Object3D
-} from '../../../../../web_modules/three/build/three.min.js';
+} from '../../../../../web_modules/three/build/three.core.js';
 
 import {
 	XRHandPrimitiveModel
