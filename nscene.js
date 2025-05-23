@@ -184,9 +184,8 @@ function initControls() {
     // initComposer();
 
     controls = new PointerLockControls( camera, document.body );
-    controls = new OrbitControls( camera, container );
-    controls.target.set( 0, 1.6, 0 );
-    controls.update();
+    scene.add( controls.getObject() );
+
 
     gpControls = new GamepadControls( controls );
 
@@ -207,7 +206,6 @@ function initControls() {
     gamePadButtonActions[16] = gamePadButtonActions[9];
     gpControls.buttonActions = gamePadButtonActions;
 
-    scene.add( controls.getObject() );
 
     document.getElementById('infoLink').addEventListener('click', e => {
         e.stopPropagation();
@@ -216,6 +214,11 @@ function initControls() {
 	const sessionInit = { requiredFeatures: [ 'hand-tracking' ]	};
 
     document.body.appendChild( VRButton.createButton( renderer, sessionInit ) );
+
+    controls = new OrbitControls( camera, container );
+    controls.target.set( 0, 1.6, 0 );
+    controls.update();
+
 
     // controllers
 
