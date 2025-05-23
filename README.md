@@ -6,7 +6,7 @@ A nativity scene minigame using three.js and the LDraw™-Library...
 
 ## Try it online
 
-[You can try the game online here.](https://goeroeg.github.io/ld-nativity/nscene.html)
+[You can try the game online here.](https://github.com/mamueso/ld-nativity-xr/nscene.html)
 
 ---
 
