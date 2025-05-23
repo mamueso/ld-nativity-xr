@@ -5,6 +5,7 @@
  *
  *
  */
+import * as THREE from '../web_modules/three/build/three.module.js';
 
 //added a small fix for loading steps correctly (line 1408) /goeroeg - using this until fix will be merged
 
