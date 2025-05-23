@@ -225,19 +225,18 @@ function initControls() {
     //controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
     scene.add( controllerGrip1 );
 
-    hand1 = renderer.xr.getHand( 0 );
+    // hand1 = renderer.xr.getHand( 0 );
     //hand1.add( handModelFactory.createHandModel( hand1 ) );
-
-    scene.add( hand1 );
+    // scene.add( hand1 );
 
     // Hand 2
     controllerGrip2 = renderer.xr.getControllerGrip( 1 );
     //controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
     scene.add( controllerGrip2 );
 
-    hand2 = renderer.xr.getHand( 1 );
+    //hand2 = renderer.xr.getHand( 1 );
     //hand2.add( handModelFactory.createHandModel( hand2 ) );
-    scene.add( hand2 );
+    //scene.add( hand2 );
 
     
     if (isTouch) {
