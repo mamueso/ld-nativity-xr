@@ -1,3 +1,4 @@
+import * as THREE from '../web_modules/three/build/three.module.js';
 import '../web_modules/partykals/dist/partykals.js';
 import * as WORLD from './World.js';
 

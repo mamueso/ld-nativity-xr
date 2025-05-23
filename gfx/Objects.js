@@ -1,3 +1,4 @@
+import * as THREE from '../web_modules/three/build/three.module.js';
 import { LDrawLoader } from './LDrawLoader.js'; // use fixed -
 import * as WORLD from './World.js';
 
