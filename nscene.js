@@ -17,10 +17,10 @@ import * as SFX from './audio/SoundFX.js';
 // import * as MSX from './audio/Music.js';
 import * as PTFX from './gfx/ParticleEffects.js';
 
-//import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-//import { VRButton } from 'three/addons/webxr/VRButton.js';
-//import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
-//import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
+import { OrbitControls } from './web_modules/three/examples/jsm/controls/OrbitControls.js';
+import { VRButton } from './web_modules/three/examples/jsm/webxr/VRButton.js';
+import { XRControllerModelFactory } from './web_modules/three/examples/jsm/webxr/XRControllerModelFactory.js';
+import { XRHandModelFactory } from './web_modules/three/examples/jsm/webxr/XRHandModelFactory.js';
 
 
 var controls, gpControls, composer;
@@ -184,9 +184,9 @@ function initControls() {
     // initComposer();
 
     controls = new PointerLockControls( camera, document.body );
-    //controls = new OrbitControls( camera, container );
-    //controls.target.set( 0, 1.6, 0 );
-    //controls.update();
+    controls = new OrbitControls( camera, container );
+    controls.target.set( 0, 1.6, 0 );
+    controls.update();
 
     gpControls = new GamepadControls( controls );
 
@@ -213,7 +213,9 @@ function initControls() {
         e.stopPropagation();
     });
 
-    // document.body.appendChild( VRButton.createButton( renderer, sessionInit ) );
+	const sessionInit = { requiredFeatures: [ 'hand-tracking' ]	};
+
+    document.body.appendChild( VRButton.createButton( renderer, sessionInit ) );
 
     // controllers
 
@@ -223,26 +225,26 @@ function initControls() {
     controller2 = renderer.xr.getController( 1 );
     scene.add( controller2 );
 
-    //const controllerModelFactory = new XRControllerModelFactory();
-    //const handModelFactory = new XRHandModelFactory();
+    const controllerModelFactory = new XRControllerModelFactory();
+    const handModelFactory = new XRHandModelFactory();
 
     // Hand 1
     controllerGrip1 = renderer.xr.getControllerGrip( 0 );
-    //controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
+    controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
     scene.add( controllerGrip1 );
 
-    // hand1 = renderer.xr.getHand( 0 );
-    //hand1.add( handModelFactory.createHandModel( hand1 ) );
-    // scene.add( hand1 );
+    hand1 = renderer.xr.getHand( 0 );
+    hand1.add( handModelFactory.createHandModel( hand1 ) );
+    scene.add( hand1 );
 
     // Hand 2
     controllerGrip2 = renderer.xr.getControllerGrip( 1 );
-    //controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
+    controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
     scene.add( controllerGrip2 );
 
-    //hand2 = renderer.xr.getHand( 1 );
-    //hand2.add( handModelFactory.createHandModel( hand2 ) );
-    //scene.add( hand2 );
+    hand2 = renderer.xr.getHand( 1 );
+    hand2.add( handModelFactory.createHandModel( hand2 ) );
+    scene.add( hand2 );
 
     
     if (isTouch) {
