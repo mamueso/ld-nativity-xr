@@ -6,7 +6,7 @@ import {
 	InstancedMesh,
 	Matrix4,
 	Vector3
-} from 'three';
+} from '../../../../../web_modules/three/build/three.min.js';
 
 const _matrix = new Matrix4();
 const _vector = new Vector3();
