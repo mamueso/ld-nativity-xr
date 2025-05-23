@@ -1,3 +1,4 @@
+import './web_modules/three/build/three.min.js';
 import './web_modules/three/build/three.core.js';
 import './web_modules/three/build/three.module.js';
 import './web_modules/seedrandom/seedrandom.min.js';
