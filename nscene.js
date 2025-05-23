@@ -30,12 +30,9 @@ var camera, rightCam, leftCam;
 var particleSystems = [];
 
 let container;
-let camera, scene, renderer;
 let hand1, hand2;
 let controller1, controller2;
 let controllerGrip1, controllerGrip2;
-
-
 
 //var rayHelper = new THREE.ArrowHelper();
 
