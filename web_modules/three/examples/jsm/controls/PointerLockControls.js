@@ -3,6 +3,7 @@
  * @author Mugen87 / https://github.com/Mugen87
  */
 
+import * as THREE from '../../../../../web_modules/three/build/three.module.js';
 
 var PointerLockControls = function ( camera, domElement ) {
 
