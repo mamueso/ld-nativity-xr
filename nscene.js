@@ -156,6 +156,9 @@ function applyInitialSettings() {
 
 function initControls() {
 
+    container = document.createElement( 'div' );
+    document.body.appendChild( container );
+
     renderer = new THREE.WebGLRenderer( { antialias: gfxSettings.antiAlias } );
     if (!isTouch) {
         renderer.setPixelRatio( window.devicePixelRatio );
@@ -168,6 +171,9 @@ function initControls() {
     renderer.xr.enabled = true;
     document.body.insertBefore( renderer.domElement, document.getElementById( 'blocker' ));
     // document.body.appendChild(renderer.domElement);
+
+	container.appendChild( renderer.domElement );
+
 
     camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 12000 );
 
