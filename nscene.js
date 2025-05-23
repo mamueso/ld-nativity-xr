@@ -17,11 +17,25 @@ import * as SFX from './audio/SoundFX.js';
 // import * as MSX from './audio/Music.js';
 import * as PTFX from './gfx/ParticleEffects.js';
 
+//import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+//import { VRButton } from 'three/addons/webxr/VRButton.js';
+//import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+//import { XRHandModelFactory } from 'three/addons/webxr/XRHandModelFactory.js';
+
+
 var controls, gpControls, composer;
 var renderer, rightRenderer, leftRenderer;
 var scene, rightScene, leftScene;
 var camera, rightCam, leftCam;
 var particleSystems = [];
+
+let container;
+let camera, scene, renderer;
+let hand1, hand2;
+let controller1, controller2;
+let controllerGrip1, controllerGrip2;
+
+
 
 //var rayHelper = new THREE.ArrowHelper();
 
@@ -154,6 +168,7 @@ function initControls() {
     // updateShadows(gameSettings.shadow);
 
     renderer.domElement.setAttribute('style', "position: absolute; top: 0px; left: 0px; right: 0px; bottom: 0px; margin: auto");
+    renderer.xr.enabled = true;
     document.body.insertBefore( renderer.domElement, document.getElementById( 'blocker' ));
     // document.body.appendChild(renderer.domElement);
 
@@ -165,7 +180,11 @@ function initControls() {
 
     // initComposer();
 
-    controls = new PointerLockControls( camera, document.body );
+    // controls = new PointerLockControls( camera, document.body );
+    controls = new OrbitControls( camera, container );
+    controls.target.set( 0, 1.6, 0 );
+    controls.update();
+
     gpControls = new GamepadControls( controls );
 
     let gamePadButtonActions = [];
@@ -191,6 +210,39 @@ function initControls() {
         e.stopPropagation();
     });
 
+    document.body.appendChild( VRButton.createButton( renderer, sessionInit ) );
+
+    // controllers
+
+    controller1 = renderer.xr.getController( 0 );
+    scene.add( controller1 );
+
+    controller2 = renderer.xr.getController( 1 );
+    scene.add( controller2 );
+
+    const controllerModelFactory = new XRControllerModelFactory();
+    const handModelFactory = new XRHandModelFactory();
+
+    // Hand 1
+    controllerGrip1 = renderer.xr.getControllerGrip( 0 );
+    controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
+    scene.add( controllerGrip1 );
+
+    hand1 = renderer.xr.getHand( 0 );
+    hand1.add( handModelFactory.createHandModel( hand1 ) );
+
+    scene.add( hand1 );
+
+    // Hand 2
+    controllerGrip2 = renderer.xr.getControllerGrip( 1 );
+    controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
+    scene.add( controllerGrip2 );
+
+    hand2 = renderer.xr.getHand( 1 );
+    hand2.add( handModelFactory.createHandModel( hand2 ) );
+    scene.add( hand2 );
+
+    
     if (isTouch) {
         instructions.addEventListener('click', function (e) {
             openFullscreen();
