@@ -207,7 +207,7 @@ function initControls() {
         e.stopPropagation();
     });
 
-    document.body.appendChild( VRButton.createButton( renderer, sessionInit ) );
+    // document.body.appendChild( VRButton.createButton( renderer, sessionInit ) );
 
     // controllers
 
