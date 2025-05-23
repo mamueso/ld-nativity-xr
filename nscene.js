@@ -1,9 +1,8 @@
 import './web_modules/three/build/three.core.js';
-import './web_modules/three/build/three.module.js';
+import * as THREE from './web_modules/three/build/three.module.js';
 import './web_modules/seedrandom/seedrandom.min.js';
 
 import { GUI } from './web_modules/three/examples/jsm/libs/dat.gui.module.js';
-import * as THREE from './web_modules/three/build/three.core.js';
 import { PointerLockControls } from './web_modules/three/examples/jsm/controls/PointerLockControls.js';
 
 //import { EffectComposer } from './web_modules/three/examples/jsm/postprocessing/EffectComposer.js';
