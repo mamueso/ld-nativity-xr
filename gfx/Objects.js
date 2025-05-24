@@ -1,5 +1,6 @@
 import * as THREE from '../web_modules/three/build/three.module.js';
-import { LDrawLoader } from './LDrawLoader.js'; // use fixed -
+// import { LDrawLoader } from './LDrawLoader.js'; // use fixed -
+import { LDrawLoader } from '../web_modules/three/examples/jsm/loaders/LDrawLoader.js'; 
 import * as WORLD from './World.js';
 
 export const BodyParts = { Head:0, Torso:1, RightArm:2, RightHand:3, LeftArm:4, LeftHand:5, Hip:6, RightLeg:7, LeftLeg:8, RightItem:9, LeftItem:10 };
@@ -25,6 +26,8 @@ export function loadModel(name, onLoad, onProgress, onError, isBasePlate = false
     var lDrawLoader = new LDrawLoader();
     lDrawLoader.smoothNormals = !isBasePlate;
     lDrawLoader.separateObjects = true;
+    lDrawLoader.setConditionalLineMaterial( THREE.LineBasicMaterial ); // MMS
+
 
     lDrawLoader
         .setPath( 'ldraw/' )

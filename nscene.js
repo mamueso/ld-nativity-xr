@@ -1,27 +1,21 @@
-import './web_modules/three/build/three.core.js';
-import * as THREE from './web_modules/three/build/three.module.js';
+import './web_modules/three/build/three.module.js';
+// import * as THREE from './web_modules/three/build/three.module.js';
 import './web_modules/seedrandom/seedrandom.min.js';
 
 import { GUI } from './web_modules/three/examples/jsm/libs/dat.gui.module.js';
 import { PointerLockControls } from './web_modules/three/examples/jsm/controls/PointerLockControls.js';
 
-//import { EffectComposer } from './web_modules/three/examples/jsm/postprocessing/EffectComposer.js';
-//import { RenderPass } from './web_modules/three/examples/jsm/postprocessing/RenderPass.js';
-//import { SMAAPass } from './web_modules/three/examples/jsm/postprocessing/SMAAPass.js';
-
 import { GamepadControls } from './controls/GamepadControls.js';
-// import { addCrossHair } from './controls/CrossHair.js';
 import * as WORLD from './gfx/World.js';
 import * as ANIM from './gfx/Animations.js';
 import * as OBJS from './gfx/Objects.js'
 import * as SFX from './audio/SoundFX.js';
-// import * as MSX from './audio/Music.js';
 import * as PTFX from './gfx/ParticleEffects.js';
 
-import { OrbitControls } from './web_modules/three/examples/jsm/controls/OrbitControls.js';
-import { VRButton } from './web_modules/three/examples/jsm/webxr/VRButton.js';
-import { XRControllerModelFactory } from './web_modules/three/examples/jsm/webxr/XRControllerModelFactory.js';
-import { XRHandModelFactory } from './web_modules/three/examples/jsm/webxr/XRHandModelFactory.js';
+//import { OrbitControls } from './web_modules/three/examples/jsm/controls/OrbitControls.js';
+//import { VRButton } from './web_modules/three/examples/jsm/webxr/VRButton.js';
+//import { XRControllerModelFactory } from './web_modules/three/examples/jsm/webxr/XRControllerModelFactory.js';
+//import { XRHandModelFactory } from './web_modules/three/examples/jsm/webxr/XRHandModelFactory.js';
 
 
 var controls, gpControls, composer;
@@ -30,10 +24,10 @@ var scene, rightScene, leftScene;
 var camera, rightCam, leftCam;
 var particleSystems = [];
 
-let container;
-let hand1, hand2;
-let controller1, controller2;
-let controllerGrip1, controllerGrip2;
+//let container;
+//let hand1, hand2;
+//let controller1, controller2;
+//let controllerGrip1, controllerGrip2;
 
 //var rayHelper = new THREE.ArrowHelper();
 
@@ -131,7 +125,7 @@ function init() {
     initScene();
     initGUI();
     initControls();
-    // SFX.init(camera);
+    SFX.init(camera);
     applyInitialSettings();
 
     showProgressBar();
@@ -157,8 +151,8 @@ function applyInitialSettings() {
 
 function initControls() {
 
-    container = document.createElement( 'div' );
-    document.body.appendChild( container );
+//    container = document.createElement( 'div' );
+//    document.body.appendChild( container );
 
     renderer = new THREE.WebGLRenderer( { antialias: gfxSettings.antiAlias } );
     if (!isTouch) {
@@ -166,28 +160,20 @@ function initControls() {
     }
 
     renderer.setSize( window.innerWidth, window.innerHeight );
-    // updateShadows(gameSettings.shadow);
 
     renderer.domElement.setAttribute('style', "position: absolute; top: 0px; left: 0px; right: 0px; bottom: 0px; margin: auto");
     renderer.xr.enabled = true;
     document.body.insertBefore( renderer.domElement, document.getElementById( 'blocker' ));
-    // document.body.appendChild(renderer.domElement);
 
-	container.appendChild( renderer.domElement );
+
+//	container.appendChild( renderer.domElement );
 
 
     camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 12000 );
-
     camera.up = new THREE.Vector3(0, 1, 0);
-
     camera.position.set(0, playerCamHeight, WORLD.worldPlates * WORLD.plateSize);
-
-    // initComposer();
-
     controls = new PointerLockControls( camera, document.body );
     scene.add( controls.getObject() );
-
-
     gpControls = new GamepadControls( controls );
 
     let gamePadButtonActions = [];
@@ -212,43 +198,43 @@ function initControls() {
         e.stopPropagation();
     });
 
-	const sessionInit = { requiredFeatures: [ 'hand-tracking' ]	};
+//    const sessionInit = { requiredFeatures: [ 'hand-tracking' ]	};
 
-    document.body.appendChild( VRButton.createButton( renderer, sessionInit ) );
+//    document.body.appendChild( VRButton.createButton( renderer, sessionInit ) );
 
-    controls = new OrbitControls( camera, container );
-    controls.target.set( 0, 1.6, 0 );
-    controls.update();
+//    controls = new OrbitControls( camera, container );
+//    controls.target.set( 0, 1.6, 0 );
+//    controls.update();
 
 
     // controllers
 
-    controller1 = renderer.xr.getController( 0 );
-    scene.add( controller1 );
+//    controller1 = renderer.xr.getController( 0 );
+//    scene.add( controller1 );
 
-    controller2 = renderer.xr.getController( 1 );
-    scene.add( controller2 );
+//    controller2 = renderer.xr.getController( 1 );
+//    scene.add( controller2 );
 
-    const controllerModelFactory = new XRControllerModelFactory();
-    const handModelFactory = new XRHandModelFactory();
+//    const controllerModelFactory = new XRControllerModelFactory();
+//    const handModelFactory = new XRHandModelFactory();
 
     // Hand 1
-    controllerGrip1 = renderer.xr.getControllerGrip( 0 );
-    controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
-    scene.add( controllerGrip1 );
+//    controllerGrip1 = renderer.xr.getControllerGrip( 0 );
+//    controllerGrip1.add( controllerModelFactory.createControllerModel( controllerGrip1 ) );
+//    scene.add( controllerGrip1 );
 
-    hand1 = renderer.xr.getHand( 0 );
-    hand1.add( handModelFactory.createHandModel( hand1 ) );
-    scene.add( hand1 );
+//    hand1 = renderer.xr.getHand( 0 );
+//    hand1.add( handModelFactory.createHandModel( hand1 ) );
+//    scene.add( hand1 );
 
     // Hand 2
-    controllerGrip2 = renderer.xr.getControllerGrip( 1 );
-    controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
-    scene.add( controllerGrip2 );
+//    controllerGrip2 = renderer.xr.getControllerGrip( 1 );
+//    controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
+//    scene.add( controllerGrip2 );
 
-    hand2 = renderer.xr.getHand( 1 );
-    hand2.add( handModelFactory.createHandModel( hand2 ) );
-    scene.add( hand2 );
+//    hand2 = renderer.xr.getHand( 1 );
+//    hand2.add( handModelFactory.createHandModel( hand2 ) );
+//    scene.add( hand2 );
 
     
     if (isTouch) {
