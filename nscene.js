@@ -685,7 +685,7 @@ function setSeason(season) {
     hemiLight = new THREE.HemisphereLight(hemiLight.skyColor, WORLD.seasonPlateColor[season], hemiLight.intensity);
     scene.add(hemiLight);
 
-    checkAndEndWeatherEffects(false);
+    // checkAndEndWeatherEffects(false);
 
     updateAmbientSound();
     preRender();
