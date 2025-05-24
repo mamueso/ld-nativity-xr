@@ -122,6 +122,8 @@ let controller1, controller2;
 let controllerGrip1, controllerGrip2;
 
 function initControlsXR() {
+
+   renderer.xr.enabled = true;
    container = document.createElement( 'div' );
    document.body.appendChild( container );
 
@@ -1262,7 +1264,9 @@ function animate() {
             return !ps.removeAndDisposeIfFinished();
         });
 
-        render();
+		renderer.setAnimationLoop( render );
+        // render();
+
     }
 }
 
@@ -1607,3 +1611,4 @@ function animateBlocker(){
     leftScene.children[0].rotateY(rot);
     leftRenderer.render(leftScene, leftCam);
 }
+
