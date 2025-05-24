@@ -131,7 +131,7 @@ function init() {
     initScene();
     initGUI();
     initControls();
-    SFX.init(camera);
+    // SFX.init(camera);
     applyInitialSettings();
 
     showProgressBar();
